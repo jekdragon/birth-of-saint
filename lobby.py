@@ -7,6 +7,7 @@ from config import (
     WIDTH, HEIGHT, WHITE, GOLD, DARK_BG, RED, GREEN,
     POWERUP_DEFS, ACHIEVEMENTS, POWERUP_COSTS, LUCKY_COSTS, REVIVE_COSTS
 )
+from save_system import save_progress
 
 
 class MetaProgress:
@@ -118,6 +119,7 @@ class LobbyScreen:
                 if self.meta.buy(pid):
                     self.notification = f"Куплено: {POWERUP_DEFS[pid]['name']}!"
                     self.notify_timer = 2.0
+                    save_progress(self.meta)
                 else:
                     self.notification = "Недостаточно золота!"
                     self.notify_timer = 1.5

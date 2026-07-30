@@ -1,0 +1,29 @@
+{
+  "gold": 1236,
+  "total_runs": 9,
+  "best_wave": 15,
+  "best_time": 9,
+  "total_kills": 2,
+  "powerups": {
+    "might": 2,
+    "sturdiness": 0,
+    "swiftness": 0,
+    "greed": 0,
+    "luck": 0,
+    "revive": 0
+  },
+  "unlocked_chars": [
+    "warrior",
+    "paladin",
+    "inquisitor"
+  ],
+  "unlocked_weapons": [
+    "halo",
+    "fire",
+    "rosary",
+    "whip"
+  ],
+  "achievements_done": [
+    "survive_5"
+  ]
+}

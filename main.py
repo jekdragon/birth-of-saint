@@ -18,6 +18,7 @@ from menu import MainMenu
 from enemies import ENEMY_TYPES
 from obstacles import generate_obstacles
 from lobby import MetaProgress, LobbyScreen
+from save_system import save_progress, load_progress
 
 # Глобальные объекты
 screen = None
@@ -57,6 +58,7 @@ class Game:
         self.state = "menu"  # "menu", "playing", "levelup", "gameover", "lobby"
         self.menu = MainMenu()
         self.meta = MetaProgress()
+        load_progress(self.meta)  # загрузить сохранённый прогресс
         self.lobby = LobbyScreen()
         self.player = None
         self.camera = Camera()
@@ -332,6 +334,9 @@ class Game:
                 self.player.kills, self.meta.gold,
                 boss_killed=boss_killed
             )
+
+            # Сохранить прогресс
+            save_progress(self.meta)
 
             if sound_mgr:
                 sound_mgr.play("game_over")

@@ -7,7 +7,7 @@ from config import (
     WIDTH, HEIGHT, WHITE, GOLD, DARK_BG, RED, GREEN,
     POWERUP_DEFS, ACHIEVEMENTS, POWERUP_COSTS, LUCKY_COSTS, REVIVE_COSTS
 )
-from save_system import save_progress
+from arcana import ARCANA_DEFS, Arcana
 
 
 class MetaProgress:
@@ -19,9 +19,10 @@ class MetaProgress:
         self.best_time = 0
         self.total_kills = 0
         self.powerups = {pid: 0 for pid in POWERUP_DEFS}
-        self.unlocked_chars = {"warrior", "paladin"}  # Инквизитор нужно разблокировать
+        self.unlocked_chars = {"warrior", "paladin"}
         self.unlocked_weapons = {"whip", "fire", "halo", "rosary"}
         self.achievements_done = set()
+        self.selected_arcana = None
 
     def get_powerup_bonus(self, powerup_id: str) -> float:
         """Возвращает бонус от powerup."""

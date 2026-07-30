@@ -86,6 +86,18 @@ class Player:
         # Инвентарь
         self.weapons = []  # list of Weapon instances
         self.passives = {}  # {"faith": 2, "speed": 1, ...}
+        # Реликвии
+        self.relics = []  # list of relic_ids collected
+        self.relic_bonuses = {
+            "damage": 0.0,
+            "projectile": 0,
+            "regen": 0.0,
+            "max_hp": 0,
+            "gold": 0.0,
+            "speed": 0.0,
+            "area": 0.0,
+            "cooldown": 0.0,
+        }
 
         # Прогрессия
         self.level = 1
@@ -109,11 +121,16 @@ class Player:
         base = calc_damage_mult(self.get_passive_level("faith"))
         if self.char_bonus == "damage_per_10_levels":
             base += 0.1 * (self.level // 10)
+        # Реликвия: Священный Грааль +20%
+        base += self.relic_bonuses.get("damage", 0.0)
         return base
 
     @property
     def cooldown_mult(self) -> float:
-        return calc_cooldown_mult(self.get_passive_level("cooldown"))
+        base = calc_cooldown_mult(self.get_passive_level("cooldown"))
+        # Реликвия: Благословенное Кольцо -20%
+        base *= max(0.1, 1.0 - self.relic_bonuses.get("cooldown", 0.0))
+        return base
 
     @property
     def area_mult(self) -> float:

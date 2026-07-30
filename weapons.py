@@ -114,6 +114,9 @@ EVOLUTIONS = {
     "fire": {"required_passive": "cooldown", "required_passive_lvl": 3, "name": "Вечное пламя"},
     "halo": {"required_passive": "cooldown", "required_passive_lvl": 3, "name": "Вечный ореол"},
     "rosary": {"required_passive": "speed", "required_passive_lvl": 3, "name": "Кара небес"},
+    "incense": {"required_passive": "magnet", "required_passive_lvl": 3, "name": "Кадило фимиама"},
+    "cross": {"required_passive": "armor", "required_passive_lvl": 3, "name": "Крест искупления"},
+    "bell": {"required_passive": "luck", "required_passive_lvl": 3, "name": "Колокол судного дня"},
 }
 
 
@@ -431,6 +434,11 @@ class IncenseWeapon(Weapon):
         count = int(d["count_base"] + self.level * d["count_per_lvl"])
         radius = (d["radius_base"] + self.level * d["radius_per_lvl"]) * player.area_mult
         damage = (d["damage_base"] + self.level * d["damage_per_lvl"]) * player.damage_mult
+
+        if self.evolved:
+            radius *= 2.0
+            damage *= 1.5
+
         self.angle += dt * 2.0  # скорость вращения
 
         for i in range(count):
@@ -459,15 +467,19 @@ class CrossWeapon(Weapon):
         cd = max(d["cd_min"], d["cooldown_base"] - self.level * d["cd_reduction"]) * player.cooldown_mult
         damage = (d["damage_base"] + self.level * d["damage_per_lvl"]) * player.damage_mult
 
+        if self.evolved:
+            damage *= 2.0
+
         if self.timer >= cd:
             self.timer = 0
+            pierce = 3 if self.evolved else (1 + player.projectiles_bonus)
             projectiles.append(Projectile(
                 player.pos.x, player.pos.y,
                 player.facing.x * d["projectile_speed"],
                 player.facing.y * d["projectile_speed"],
                 damage, d["projectile_size"],
                 color=d["color"],
-                pierce=1 + player.projectiles_bonus
+                pierce=pierce
             ))
 
 
@@ -483,6 +495,9 @@ class BellWeapon(Weapon):
         radius = (d["radius_base"] + self.level * d["radius_per_lvl"]) * player.area_mult
         damage = (d["damage_base"] + self.level * d["damage_per_lvl"]) * player.damage_mult
 
+        if self.evolved:
+            damage *= 1.8
+
         if self.timer >= cd:
             self.timer = 0
             for e in enemies:
@@ -492,6 +507,8 @@ class BellWeapon(Weapon):
                 dy = e.pos.y - player.pos.y
                 if dx * dx + dy * dy < (radius + e.radius) ** 2:
                     e.take_damage(damage)
+                    if self.evolved:
+                        e.stun_timer = 1.0
                     damage_numbers.append(DamageNumber(e.pos.x, e.pos.y, damage, d["color"]))
 
             pulses.append(Pulse(player.pos.x, player.pos.y, radius, d["color"], duration=0.5))

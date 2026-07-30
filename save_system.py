@@ -21,6 +21,7 @@ def save_progress(meta) -> bool:
         "unlocked_chars": list(meta.unlocked_chars),
         "unlocked_weapons": list(meta.unlocked_weapons),
         "achievements_done": list(meta.achievements_done),
+        "selected_arcana": meta.selected_arcana,
     }
     try:
         os.makedirs(SAVE_DIR, exist_ok=True)
@@ -48,6 +49,7 @@ def load_progress(meta) -> bool:
         meta.unlocked_chars = set(data.get("unlocked_chars", ["warrior", "paladin"]))
         meta.unlocked_weapons = set(data.get("unlocked_weapons", ["whip", "fire", "halo", "rosary"]))
         meta.achievements_done = set(data.get("achievements_done", []))
+        meta.selected_arcana = data.get("selected_arcana", None)
         return True
     except Exception as e:
         print(f"Load error: {e}")

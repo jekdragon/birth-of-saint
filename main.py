@@ -224,10 +224,18 @@ class Game:
                      self.pulses, self.particles, self.damage_numbers, dt)
 
         # 4. Враги
+        enemy_speed_mult = self.arcana_data.get("enemy_speed_mult", 1.0)
         for e in self.enemies:
             if not e.alive:
                 continue
-            e.update(self.player.pos, dt)
+            # Аркана: Ярость орды — ускорение врагов
+            if enemy_speed_mult != 1.0:
+                orig_speed = e.speed
+                e.speed *= enemy_speed_mult
+                e.update(self.player.pos, dt)
+                e.speed = orig_speed
+            else:
+                e.update(self.player.pos, dt)
 
             # Коллизия враг → игрок
             dx = e.pos.x - self.player.pos.x
@@ -298,6 +306,10 @@ class Game:
                 # Бонус Пилигрима: +30% XP
                 if self.player.char_bonus == "xp_bonus":
                     xp = int(xp * 1.3)
+                # Аркана: Двойная угроза +50% XP
+                xp_mult = self.arcana_data.get("xp_mult", 1.0)
+                if xp_mult != 1.0:
+                    xp = int(xp * xp_mult)
                 self.player.add_xp(xp)
                 if sound_mgr:
                     sound_mgr.play("gem_pickup")

@@ -128,7 +128,7 @@ class HordeFuryArcana(Arcana):
 
     def apply(self, game, meta):
         game.arcana_data["enemy_speed_mult"] = 1.4
-        game.arcana_data["gold_mult"] = 2.0
+        game.player.arcana_gold_mult = 2.0
 
 
 class SwiftJudgmentArcana(Arcana):

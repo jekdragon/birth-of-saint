@@ -109,6 +109,7 @@ class Player:
         # Аркана-модификаторы (устанавливаются из main при старте)
         self.arcana_damage_bonus = 1.0
         self.arcana_no_heal = False
+        self.arcana_gold_mult = 1.0
 
         # Состояние
         self.invuln_timer = 0.0
@@ -194,7 +195,7 @@ class Player:
         base = 1.0
         # Реликвия: Золотая Чаша +30%
         base += self.relic_bonuses.get("gold", 0.0)
-        return base
+        return base * self.arcana_gold_mult
 
     def update_stats(self):
         """Пересчитать max_hp после изменения пассивек и реликвий."""

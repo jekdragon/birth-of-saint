@@ -1,11 +1,11 @@
 {
-  "gold": 791,
-  "total_runs": 41,
+  "gold": 0,
+  "total_runs": 1,
   "best_wave": 1,
-  "best_time": 10,
-  "total_kills": 14,
+  "best_time": 7,
+  "total_kills": 0,
   "powerups": {
-    "might": 2,
+    "might": 0,
     "sturdiness": 0,
     "swiftness": 0,
     "greed": 0,
@@ -13,14 +13,15 @@
     "revive": 0
   },
   "unlocked_chars": [
-    "paladin",
-    "warrior"
+    "warrior",
+    "paladin"
   ],
   "unlocked_weapons": [
-    "halo",
     "fire",
     "rosary",
-    "whip"
+    "whip",
+    "halo"
   ],
-  "achievements_done": []
+  "achievements_done": [],
+  "selected_arcana": null
 }

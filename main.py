@@ -142,7 +142,8 @@ class Game:
         # 2. Волны
         new_enemies = self.wave_mgr.update(
             dt, len(self.enemies),
-            self.camera.cam_x, self.camera.cam_y
+            self.camera.cam_x, self.camera.cam_y,
+            self.player.pos
         )
         self.enemies.extend(new_enemies)
 

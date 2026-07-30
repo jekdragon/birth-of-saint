@@ -51,6 +51,14 @@ def init_sounds():
         sound_mgr = SoundManager()
     except Exception:
         sound_mgr = None
+    
+    # Инициализация музыки
+    try:
+        from music import MusicManager
+        music_mgr = MusicManager()
+        music_mgr.init()
+    except Exception:
+        pass
 
 
 class Game:

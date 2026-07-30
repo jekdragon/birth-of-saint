@@ -145,12 +145,36 @@ class Enemy:
 
     def update(self, player_pos: pygame.Vector2, dt: float):
         if not self.alive:
-            return
+            return None
 
         # Стан — пропускаем движение
         if self.stun_timer > 0:
             self.stun_timer -= dt
-            return
+            return None
+
+        # Рендж-атака (demon, cultist)
+        if self.shoot_range > 0:
+            dist = (player_pos - self.pos).length()
+            if dist <= self.shoot_range:
+                self.shoot_timer += dt
+                if self.shoot_timer >= self.shoot_cd:
+                    self.shoot_timer = 0.0
+                    d = player_pos - self.pos
+                    if d.length() > 0:
+                        d = d.normalize()
+                    else:
+                        d = pygame.Vector2(1, 0)
+                    speed = 4.0
+                    shot = {
+                        "x": self.pos.x, "y": self.pos.y,
+                        "vx": d.x * speed, "vy": d.y * speed,
+                        "damage": self.damage * 0.5,
+                        "color": self.color,
+                    }
+                    # Не двигаемся пока стреляем
+                    if self.hit_flash > 0:
+                        self.hit_flash -= dt
+                    return shot
 
         # Движение к игроку
         d = player_pos - self.pos
@@ -161,6 +185,7 @@ class Enemy:
         # Hit flash
         if self.hit_flash > 0:
             self.hit_flash -= dt
+        return None
 
     def draw(self, surface: pygame.Surface, cam_x: float, cam_y: float, font=None):
         sx = int(self.pos.x - cam_x)
@@ -171,7 +196,7 @@ class Enemy:
 
         # Спрайт
         from sprites import get_enemy_sprite
-        sprite = get_enemy_sprite(self.enemy_type, scale=2)
+        sprite = get_enemy_sprite(self.type_id, scale=2)
         if self.hit_flash > 0:
             # Белая вспышка при ударе
             sprite = sprite.copy()

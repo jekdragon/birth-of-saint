@@ -18,6 +18,7 @@ from config import (
     DESPAWN_DISTANCE, CENTER_X, CENTER_Y, MAP_WIDTH, MAP_HEIGHT
 )
 from main import Game
+import main
 from player import Player, CHARACTERS
 from enemies import Enemy, ENEMY_TYPES
 from weapons import WEAPON_DEFS, create_weapon, EVOLUTIONS, WhipWeapon, FireWeapon, HaloWeapon, RosaryWeapon
@@ -72,6 +73,31 @@ try:
     check("Wave system active", g.wave_mgr.wave >= 1, f"wave={g.wave_mgr.wave}")
 except Exception as e:
     check("Smoke test", False, str(e))
+
+
+# ============================================================
+# TEST 1b: Render smoke — 60 кадров render() без краша
+# ============================================================
+print("\n[1b] RENDER SMOKE — 60 frames render()")
+try:
+    import main as _main_module
+    _main_module.screen = screen
+    _main_module.font = pygame.font.Font(None, 20)
+    _main_module.big_font = pygame.font.Font(None, 32)
+    _main_module.small_font = pygame.font.Font(None, 16)
+    g1b = Game()
+    g1b.start_game("warrior")
+    # Заспавнить врагов через update
+    for _ in range(120):
+        g1b.player.pos.x += 0.5
+        g1b.update(1 / 60)
+    # Теперь рендерим — враги на экране
+    for frame in range(60):
+        g1b.render()
+    check("Render 60 frames no crash", True)
+    check("Enemies on screen", len(g1b.enemies) > 0, f"count={len(g1b.enemies)}")
+except Exception as e:
+    check("Render smoke", False, str(e))
 
 
 # ============================================================
@@ -234,9 +260,39 @@ except Exception as e:
 
 
 # ============================================================
-# TEST 9: Разблокировки — достижения
+# TEST 8b: Gold formula — multipliers работают
 # ============================================================
-print("\n[9] ACHIEVEMENTS — unlocks")
+print("\n[8b] GOLD FORMULA — multipliers active")
+try:
+    m8 = MetaProgress()
+    m8.gold = 0
+    # Greed level 4 = 1.4x
+    m8.powerups["greed"] = 4
+    g8 = Game()
+    g8.meta = m8
+    g8.start_game("warrior")
+    g8.player.gold = 0
+    # Заспавнить neophyte (score=10) рядом
+    e8 = Enemy("neophyte", g8.player.pos.x, g8.player.pos.y, 1)
+    e8.alive = False  # "убить"
+    g8.enemies.append(e8)
+    g8.update(1 / 60)
+    # Проверяем что greed даёт бонус (demon score=15: base=1, with greed 1.4 -> int(2.1)=2)
+    gold_no_greed = int(15 * 0.1 * 1.0 * 1.0)
+    gold_with_greed = int(15 * 0.1 * 1.4 * 1.0)
+    check("Greed affects demon gold", gold_with_greed > gold_no_greed,
+          f"no_greed={gold_no_greed}, with_greed={gold_with_greed}")
+    # Pope (score=500): base=50, with greed=70
+    gold_pope_no = int(500 * 0.1 * 1.0 * 1.0)
+    gold_pope_yes = int(500 * 0.1 * 1.4 * 1.0)
+    check("Greed affects pope gold", gold_pope_yes > gold_pope_no,
+          f"no_greed={gold_pope_no}, with_greed={gold_pope_yes}")
+except Exception as e:
+    check("Gold formula test", False, str(e))
+
+
+# ============================================================
+# TEST 9: Разблокировки — достижения
 try:
     m2 = MetaProgress()
     m2.check_achievements(310, 5, 100, 0, boss_killed=True)

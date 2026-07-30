@@ -11,7 +11,7 @@ from camera import Camera
 from wave_manager import WaveManager
 from xp_system import XPGem, LevelUpScreen
 from weapons import create_weapon
-from projectiles import DamageNumber, Particle, Pulse
+from projectiles import DamageNumber, Particle, Pulse, Projectile
 from hud import draw_hud
 from effects import ScreenShake, ScreenFlash, draw_grid
 from menu import MainMenu
@@ -230,13 +230,22 @@ class Game:
             if not e.alive:
                 continue
             # Аркана: Ярость орды — ускорение врагов
+            shot = None
             if enemy_speed_mult != 1.0:
                 orig_speed = e.speed
                 e.speed *= enemy_speed_mult
-                e.update(self.player.pos, dt)
+                shot = e.update(self.player.pos, dt)
                 e.speed = orig_speed
             else:
-                e.update(self.player.pos, dt)
+                shot = e.update(self.player.pos, dt)
+
+            # Demon/Cultist ranged attack → Projectile
+            if shot:
+                self.projectiles.append(Projectile(
+                    shot["x"], shot["y"], shot["vx"], shot["vy"],
+                    damage=shot["damage"], radius=6, lifetime=2.0,
+                    pierce=0, color=shot["color"],
+                ))
 
             # Коллизия враг → игрок
             dx = e.pos.x - self.player.pos.x
@@ -279,6 +288,7 @@ class Game:
                         self.particles.append(Particle(e.pos.x, e.pos.y, p.color))
 
                     if killed:
+                        e._on_killed_called = True
                         self.on_enemy_killed(e)
 
                     if p.pierce <= 0:
@@ -335,11 +345,14 @@ class Game:
         # 7. Убитые враги → гемы
         dead_enemies = [e for e in self.enemies if not e.alive]
         for e in dead_enemies:
+            # Melee kills: on_enemy_killed для эволюции боссов
+            if not getattr(e, '_on_killed_called', False):
+                self.on_enemy_killed(e)
             if not hasattr(e, '_gem_dropped'):
                 e._gem_dropped = True
                 self.gems.append(XPGem(e.pos.x, e.pos.y, e.xp))
                 self.player.kills += 1
-                self.player.gold += int(e.score // 10 * self.meta.get_powerup_bonus("greed") * self.player.gold_mult)
+                self.player.gold += int(e.score * 0.1 * self.meta.get_powerup_bonus("greed") * self.player.gold_mult)
 
         # Очистка + деспавн далёких врагов
         from config import DESPAWN_DISTANCE

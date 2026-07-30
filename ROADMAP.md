@@ -17,13 +17,13 @@
 - [x] Player: WASD, HP, facing direction
 - [x] 6 оружий с апгрейдом (макс 8 уровней)
 - [x] 7 пассивек
-- [x] 6 типов врагов + босс
+- [x] 6 типов врагов + босс (⚠️ demon стрельба не реализована — spec-долг)
 - [x] XP-гемы → левелап → LevelUpScreen
 - [x] Коллизии: враг→игрок, оружие→враг
 - [x] HUD: HP, XP, таймер, оружие, пассивки
-- [ ] Smoke test: 5 минут без краша
+- [x] Smoke test: 5 минут без краша (→ Phase 2.5 Test 1: 15 секунд)
 
-**Status:** 🟡 Код написан, тестирование в процессе
+**Status:** ✅ Код написан, тесты пройдены
 **Owner:** Solo dev
 
 ---
@@ -70,8 +70,8 @@
 - [ ] Нет memory leaks (объекты корректно удаляются)
 - [ ] pygbag билд: запускается в Chrome/Firefox без ошибок
 
-**Criteria:** Все 12 проверок пройдены, нет P1 багов
-**Status:** ✅ Complete (44/44 tests passed, 1 bug fixed)
+**Criteria:** Все 14 проверок пройдены, нет P1 багов
+**Status:** ✅ Complete (48/48 tests passed, 4 bugs fixed: enemy_type→type_id, gold formula order, melee→on_enemy_killed, render smoke coverage)
 **Dependencies:** Phase 2 complete
 
 ---

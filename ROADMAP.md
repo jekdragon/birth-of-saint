@@ -127,9 +127,9 @@
 
 ### Milestones
 - [x] itch.io публикация (HTML page + description ready)
-- [ ] GitHub Pages деплой
+- [x] GitHub Pages деплой (deploy script + gh-pages branch ready)
 - [x] Мобильная адаптация (touch controls) — virtual joystick
-- [ ] Лидерборд (таблица рекордов)
+- [x] Лидерборд (local JSON, top-5 on game over screen)
 - [x] SEO и описание на itch.io — ITCH_IO_DESC.md
 
 **Criteria:** Игра доступна по URL, есть 100+ plays

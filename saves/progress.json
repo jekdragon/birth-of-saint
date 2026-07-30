@@ -1,6 +1,6 @@
 {
   "gold": 1236,
-  "total_runs": 9,
+  "total_runs": 13,
   "best_wave": 15,
   "best_time": 9,
   "total_kills": 2,
@@ -18,10 +18,10 @@
     "inquisitor"
   ],
   "unlocked_weapons": [
-    "halo",
+    "whip",
     "fire",
-    "rosary",
-    "whip"
+    "halo",
+    "rosary"
   ],
   "achievements_done": [
     "survive_5"

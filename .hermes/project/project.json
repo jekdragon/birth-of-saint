@@ -1,11 +1,11 @@
 {
   "project_path": "E:\\birth-of-saint",
   "scan_time": 0.04,
-  "total_files": 14,
+  "total_files": 16,
   "languages": {
-    "python": 14
+    "python": 16
   },
-  "total_edges": 30,
-  "total_symbols": 130,
-  "scanned_at": "2026-07-30T21:20:49"
+  "total_edges": 45,
+  "total_symbols": 146,
+  "scanned_at": "2026-07-30T22:24:31"
 }

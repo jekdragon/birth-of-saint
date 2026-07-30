@@ -1,88 +1,92 @@
 # Graph Report - birth-of-saint  (2026-07-30)
 
 ## Corpus Check
-- 22 files · ~12,098 words
+- 26 files · ~15,627 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 283 nodes · 449 edges · 11 communities
-- Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 41 edges (avg confidence: 0.5)
+- 331 nodes · 560 edges · 15 communities
+- Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 44 edges (avg confidence: 0.5)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `b786b35c`
+- Built from commit: `387a43d4`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - DamageNumber
 - config.py
-- Game
-- Боевая система — "Рождение святого"
 - main.py
+- Боевая система — "Рождение святого"
+- test_phase25.py
 - Рождение святого — SPEC.md
-- WaveManager
+- Enemy
 - Рождение святого — ROADMAP
 - AGENTS.md — Birth of the Saint
 - MainMenu
 - Рождение святого
+- MetaProgress
+- SoundManager
+- Obstacle
+- Assets — Рождение святого
 
 ## God Nodes (most connected - your core abstractions)
-1. `Game` - 21 edges
-2. `DamageNumber` - 21 edges
+1. `Game` - 25 edges
+2. `DamageNumber` - 22 edges
 3. `Рождение святого — SPEC.md` - 21 edges
-4. `Player` - 19 edges
+4. `Player` - 20 edges
 5. `Weapon` - 19 edges
-6. `Particle` - 17 edges
-7. `Pulse` - 17 edges
-8. `Рождение святого — ROADMAP` - 14 edges
-9. `Projectile` - 13 edges
-10. `LevelUpScreen` - 12 edges
+6. `Particle` - 18 edges
+7. `Pulse` - 18 edges
+8. `Enemy` - 15 edges
+9. `WaveManager` - 15 edges
+10. `Projectile` - 14 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Game` --uses--> `ScreenShake`  [INFERRED]
   main.py → effects.py
 - `Game` --uses--> `ScreenFlash`  [INFERRED]
   main.py → effects.py
-- `Game` --uses--> `MainMenu`  [INFERRED]
-  main.py → menu.py
-- `Game` --uses--> `Player`  [INFERRED]
-  main.py → player.py
-- `Game` --uses--> `DamageNumber`  [INFERRED]
-  main.py → projectiles.py
+- `Game` --uses--> `Enemy`  [INFERRED]
+  main.py → enemies.py
+- `Game` --uses--> `MetaProgress`  [INFERRED]
+  main.py → lobby.py
+- `Game` --uses--> `LobbyScreen`  [INFERRED]
+  main.py → lobby.py
 
 ## Import Cycles
 - None detected.
 
-## Communities (11 total, 0 thin omitted)
+## Communities (15 total, 0 thin omitted)
 
 ### Community 0 - "DamageNumber"
 Cohesion: 0.08
 Nodes (19): DamageNumber, Particle, Projectile, Pulse, Surface, Рождение святого — Projectiles & Particles Снаряды, частицы, визуальные эффекты, Расширяющийся круг (для AoE атак)., Короткоживущая частица (спарк при попадании). (+11 more)
 
 ### Community 1 - "config.py"
-Cohesion: 0.09
-Nodes (16): Рождение святого — Camera Камера следит за игроком, скроллит карту., calc_area_mult(), calc_cooldown_mult(), calc_damage_mult(), calc_max_hp(), calc_pickup_range(), calc_regen(), calc_speed_mult() (+8 more)
+Cohesion: 0.11
+Nodes (14): calc_area_mult(), calc_cooldown_mult(), calc_damage_mult(), calc_max_hp(), calc_pickup_range(), calc_regen(), calc_speed_mult(), Рождение святого — Configuration Все константы, настройки экрана, формулы. (+6 more)
 
-### Community 2 - "Game"
-Cohesion: 0.09
-Nodes (14): Camera, Следит за целевой позицией (игрок)., calc_xp_for_level(), XP, необходимый для перехода на следующий уровень., Game, create_weapon(), LevelUpScreen, Surface (+6 more)
+### Community 2 - "main.py"
+Cohesion: 0.07
+Nodes (23): Camera, Рождение святого — Camera Камера следит за игроком, скроллит карту., Следит за целевой позицией (игрок)., calc_xp_for_level(), XP, необходимый для перехода на следующий уровень., Game, init_pygame(), init_sounds() (+15 more)
 
 ### Community 3 - "Боевая система — "Рождение святого""
 Cohesion: 0.06
 Nodes (31): 10. Техническая архитектура (для реализации), 1.1 Святой кнут (Starter — Воин), 1.2 Священный огонь (Sacred Fire), 1.3 Орбитальная аура (Holy Halo), 1.4 Чётки (Rosary), 1.5 Божественная молния (Divine Lightning), 1.6 Молитвенная волна (Prayer Wave), 1. Оружие (до 6 слотов) (+23 more)
 
-### Community 4 - "main.py"
-Cohesion: 0.09
-Nodes (17): draw_grid(), Surface, Рождение святого — Visual Effects Screen shake, flash, grid rendering., Рисует фоновую сетку., ScreenFlash, ScreenShake, draw_hud(), Surface (+9 more)
+### Community 4 - "test_phase25.py"
+Cohesion: 0.11
+Nodes (13): draw_grid(), get_biome(), Surface, Рождение святого — Visual Effects Screen shake, flash, grid rendering., Определяет биом по расстоянию от центра карты., Рисует фоновую сетку с учётом биома., ScreenFlash, ScreenShake (+5 more)
 
 ### Community 5 - "Рождение святого — SPEC.md"
 Cohesion: 0.08
 Nodes (25): HUD, MVP чек-лист, User Flow, Визуальный стиль, Враги, Выбор персонажа, Запуск, Звуки (+17 more)
 
-### Community 6 - "WaveManager"
-Cohesion: 0.13
-Nodes (10): Enemy, Surface, Vector2, Рождение святого — Enemies Типы врагов, спавн, AI, урон., Возвращает True если враг умер., Рождение святого — Wave Manager Система волн: спавн врагов, нарастающая сложност, Возвращает типы врагов, доступные на текущей волне., Спавнит врага за экраном. (+2 more)
+### Community 6 - "Enemy"
+Cohesion: 0.11
+Nodes (14): Enemy, Surface, Vector2, Рождение святого — Enemies Типы врагов, спавн, AI, урон., Возвращает True если враг умер., Vector2, Рождение святого — Wave Manager Система волн: спавн врагов, нарастающая сложност, Рой — много врагов с одной стороны. (+6 more)
 
 ### Community 7 - "Рождение святого — ROADMAP"
 Cohesion: 0.10
@@ -100,24 +104,40 @@ Nodes (3): MainMenu, Surface, Возвращает: 'start', 'char_select', None
 Cohesion: 0.22
 Nodes (8): Запуск, Запуск в браузере (pygbag), Лицензия, Оружие, Персонажи, Рождение святого, Стек, Управление
 
+### Community 11 - "MetaProgress"
+Cohesion: 0.12
+Nodes (9): LobbyScreen, MetaProgress, Surface, Рождение святого — Lobby Магазин PowerUp между ранами. Достижения. Мета-прогресс, Возвращает: 'play', None, Глобальный прогресс между ранами., Возвращает бонус от powerup., Проверяет и разблокирует достижения. (+1 more)
+
+### Community 12 - "SoundManager"
+Cohesion: 0.32
+Nodes (3): Sound, Рождение святого — Sound System Генерация звуков через synth (без внешних файлов, SoundManager
+
+### Community 13 - "Obstacle"
+Cohesion: 0.33
+Nodes (4): Obstacle, Surface, Vector2, Проверяет коллизию с объектом.
+
+### Community 14 - "Assets — Рождение святого"
+Cohesion: 0.40
+Nodes (4): Assets — Рождение святого, Правила, Структура, Цветовые палитры (для генерации спрайтов)
+
 ## Knowledge Gaps
-- **77 isolated node(s):** `Project`, `Stack`, `Setting`, `Session`, `Visual` (+72 more)
+- **80 isolated node(s):** `Project`, `Stack`, `Setting`, `Session`, `Visual` (+75 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Game` connect `Game` to `DamageNumber`, `config.py`, `main.py`, `WaveManager`, `MainMenu`?**
-  _High betweenness centrality (0.086) - this node is a cross-community bridge._
-- **Why does `Player` connect `config.py` to `Game`, `main.py`?**
-  _High betweenness centrality (0.070) - this node is a cross-community bridge._
-- **Why does `WaveManager` connect `WaveManager` to `Game`, `main.py`?**
-  _High betweenness centrality (0.049) - this node is a cross-community bridge._
-- **Are the 12 inferred relationships involving `Game` (e.g. with `Camera` and `ScreenFlash`) actually correct?**
-  _`Game` has 12 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `Game` connect `main.py` to `DamageNumber`, `config.py`, `test_phase25.py`, `Enemy`, `MainMenu`, `MetaProgress`, `SoundManager`?**
+  _High betweenness centrality (0.073) - this node is a cross-community bridge._
+- **Why does `Player` connect `config.py` to `main.py`, `test_phase25.py`?**
+  _High betweenness centrality (0.067) - this node is a cross-community bridge._
+- **Why does `WaveManager` connect `Enemy` to `main.py`, `test_phase25.py`?**
+  _High betweenness centrality (0.044) - this node is a cross-community bridge._
+- **Are the 15 inferred relationships involving `Game` (e.g. with `Camera` and `ScreenFlash`) actually correct?**
+  _`Game` has 15 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 8 inferred relationships involving `DamageNumber` (e.g. with `Game` and `FireWeapon`) actually correct?**
   _`DamageNumber` has 8 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 4 inferred relationships involving `Weapon` (e.g. with `DamageNumber` and `Particle`) actually correct?**
   _`Weapon` has 4 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `Project`, `Stack`, `Setting` to the rest of the system?**
-  _77 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _80 weakly-connected nodes found - possible documentation gaps or missing edges._

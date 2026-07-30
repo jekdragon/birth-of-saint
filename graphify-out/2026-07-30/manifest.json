@@ -1,22 +1,22 @@
 {
   ".hermes/project/dep-graph.json": {
-    "mtime": 1785439471.5549073,
-    "ast_hash": "849274e3a9f78076a8bbc7c89690f984",
+    "mtime": 1785434532.6894677,
+    "ast_hash": "7266e3c4937a22aeef0512d1046ae80c",
     "semantic_hash": ""
   },
   ".hermes/project/project.json": {
-    "mtime": 1785439471.5559063,
-    "ast_hash": "cdb66cff1efe8a4659cff92b2e2c54d9",
+    "mtime": 1785434532.690446,
+    "ast_hash": "317452d46fe9b4ac21e62afd07f81fb8",
     "semantic_hash": ""
   },
   ".hermes/project/reverse-graph.json": {
-    "mtime": 1785439471.5549073,
-    "ast_hash": "f7d01801fd15d9fffff24d80edf2aac7",
+    "mtime": 1785434532.690446,
+    "ast_hash": "677a398d84b8a0c00578081992297290",
     "semantic_hash": ""
   },
   ".hermes/project/symbols.json": {
-    "mtime": 1785439471.5549073,
-    "ast_hash": "2ecb38cbb792660042da86c9a70be36b",
+    "mtime": 1785434532.690446,
+    "ast_hash": "3ca0350f2a8b2d30216f9dfa49e5d8dc",
     "semantic_hash": ""
   },
   "camera.py": {
@@ -25,13 +25,13 @@
     "semantic_hash": ""
   },
   "config.py": {
-    "mtime": 1785435282.1831765,
-    "ast_hash": "773903bfe720103ccd5552bd9bfb918d",
+    "mtime": 1785433044.0912888,
+    "ast_hash": "09585b42e843a6b0cebdf91f05ba63ae",
     "semantic_hash": ""
   },
   "effects.py": {
-    "mtime": 1785435323.8419647,
-    "ast_hash": "cc73dc18b6973af154d129f31286bcc3",
+    "mtime": 1785433361.1829476,
+    "ast_hash": "8694a3b1d293060221c5ff80f429fa73",
     "semantic_hash": ""
   },
   "enemies.py": {
@@ -45,8 +45,8 @@
     "semantic_hash": ""
   },
   "main.py": {
-    "mtime": 1785439089.585345,
-    "ast_hash": "471d19935649e104733045896aaa3453",
+    "mtime": 1785433475.0835657,
+    "ast_hash": "30ce3bf0511ab47d4fa588ea4dc18cd4",
     "semantic_hash": ""
   },
   "menu.py": {
@@ -70,8 +70,8 @@
     "semantic_hash": ""
   },
   "wave_manager.py": {
-    "mtime": 1785435781.5942168,
-    "ast_hash": "9212be6b08240148a699d5eb62ae8dc6",
+    "mtime": 1785433255.7425816,
+    "ast_hash": "3f327d7a5656a9012ad9f00ead9c876d",
     "semantic_hash": ""
   },
   "weapons.py": {
@@ -85,8 +85,8 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1785434959.6762722,
-    "ast_hash": "068b5dc699997e1af8a6860080e51113",
+    "mtime": 1785434379.3170967,
+    "ast_hash": "077ed05b9315e2fdae2e07fa63f68123",
     "semantic_hash": ""
   },
   "COMBAT-SYSTEM.md": {
@@ -100,33 +100,13 @@
     "semantic_hash": ""
   },
   "ROADMAP.md": {
-    "mtime": 1785439285.3202603,
-    "ast_hash": "ec80865519a9d39ac73e483c23626142",
+    "mtime": 1785434815.5473702,
+    "ast_hash": "b2d6c12bb724122963e7446792c1c746",
     "semantic_hash": ""
   },
   "SPEC.md": {
     "mtime": 1785434455.6116831,
     "ast_hash": "a4a28d128c8ad65391a0f3d6dab47334",
-    "semantic_hash": ""
-  },
-  "lobby.py": {
-    "mtime": 1785435920.7119505,
-    "ast_hash": "d0071a09e442645e713dbe7ecd24bbea",
-    "semantic_hash": ""
-  },
-  "obstacles.py": {
-    "mtime": 1785435467.0857203,
-    "ast_hash": "2aeb2907c0fe34e31e1f5cb3a7161106",
-    "semantic_hash": ""
-  },
-  "tests/test_phase25.py": {
-    "mtime": 1785439112.9011495,
-    "ast_hash": "40d1dff474879b63f312b47d2f7634c2",
-    "semantic_hash": ""
-  },
-  "assets/README.md": {
-    "mtime": 1785434934.7950945,
-    "ast_hash": "cf69c52e920cda6be49cab012578f2fe",
     "semantic_hash": ""
   }
 }

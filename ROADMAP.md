@@ -126,11 +126,11 @@
 **Goal:** Доступность и рост аудитории
 
 ### Milestones
-- [ ] itch.io публикация
+- [x] itch.io публикация (HTML page + description ready)
 - [ ] GitHub Pages деплой
-- [ ] Мобильная адаптация (touch controls)
+- [x] Мобильная адаптация (touch controls) — virtual joystick
 - [ ] Лидерборд (таблица рекордов)
-- [ ] SEO и описание на itch.io
+- [x] SEO и описание на itch.io — ITCH_IO_DESC.md
 
 **Criteria:** Игра доступна по URL, есть 100+ plays
 **Status:** ⬜ Not started

@@ -4,7 +4,8 @@ Screen shake, flash, grid rendering.
 """
 import pygame
 import random
-from config import WIDTH, HEIGHT, MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, DARK_BG, GRID_COLOR
+import math
+from config import WIDTH, HEIGHT, MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, BIOMES, CENTER_X, CENTER_Y
 
 
 class ScreenShake:
@@ -50,9 +51,30 @@ class ScreenFlash:
             surface.blit(overlay, (0, 0))
 
 
-def draw_grid(surface: pygame.Surface, cam_x: float, cam_y: float):
-    """Рисует фоновую сетку."""
-    surface.fill(DARK_BG)
+def get_biome(player_x: float, player_y: float) -> dict:
+    """Определяет биом по расстоянию от центра карты."""
+    dx = player_x - CENTER_X
+    dy = player_y - CENTER_Y
+    dist = math.sqrt(dx * dx + dy * dy)
+    for biome in BIOMES:
+        if dist < biome["radius"]:
+            return biome
+    return BIOMES[-1]  # Пустошь (крайний)
+
+
+def draw_grid(surface: pygame.Surface, cam_x: float, cam_y: float,
+              player_x: float = None, player_y: float = None):
+    """Рисует фоновую сетку с учётом биома."""
+    # Определяем биом
+    if player_x is not None and player_y is not None:
+        biome = get_biome(player_x, player_y)
+    else:
+        biome = BIOMES[0]
+
+    bg_color = biome["bg"]
+    grid_color = biome["grid"]
+
+    surface.fill(bg_color)
 
     # Видимые тайлы
     start_col = int(cam_x // TILE_SIZE)
@@ -62,8 +84,8 @@ def draw_grid(surface: pygame.Surface, cam_x: float, cam_y: float):
 
     for col in range(start_col, end_col + 1):
         x = int(col * TILE_SIZE - cam_x)
-        pygame.draw.line(surface, GRID_COLOR, (x, 0), (x, HEIGHT))
+        pygame.draw.line(surface, grid_color, (x, 0), (x, HEIGHT))
 
     for row in range(start_row, end_row + 1):
         y = int(row * TILE_SIZE - cam_y)
-        pygame.draw.line(surface, GRID_COLOR, (0, y), (WIDTH, y))
+        pygame.draw.line(surface, grid_color, (0, y), (WIDTH, y))

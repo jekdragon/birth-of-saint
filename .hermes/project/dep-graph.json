@@ -13,22 +13,26 @@
     "weapons.py"
   ],
   "main.py": [
-    "wave_manager.py",
-    "weapons.py",
-    "player.py",
-    "config.py",
-    "sounds.py",
-    "effects.py",
-    "menu.py",
     "enemies.py",
     "projectiles.py",
-    "hud.py",
+    "player.py",
+    "menu.py",
     "camera.py",
-    "xp_system.py"
+    "effects.py",
+    "config.py",
+    "weapons.py",
+    "hud.py",
+    "xp_system.py",
+    "wave_manager.py",
+    "sounds.py",
+    "obstacles.py"
   ],
   "menu.py": [
     "config.py",
     "player.py"
+  ],
+  "obstacles.py": [
+    "config.py"
   ],
   "player.py": [
     "config.py"

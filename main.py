@@ -16,6 +16,7 @@ from hud import draw_hud
 from effects import ScreenShake, ScreenFlash, draw_grid
 from menu import MainMenu
 from enemies import ENEMY_TYPES
+from obstacles import generate_obstacles
 
 # Глобальные объекты
 screen = None
@@ -64,6 +65,7 @@ class Game:
         self.damage_numbers = []
         self.particles = []
         self.pulses = []
+        self.obstacles = []
         self.elapsed = 0.0
 
     def start_game(self, char_id: str):
@@ -84,6 +86,10 @@ class Game:
         # Стартовое оружие
         start_weapon_id = CHARACTERS[char_id]["start_weapon"]
         self.player.weapons.append(create_weapon(start_weapon_id))
+
+        # Препятствия
+        self.obstacles = generate_obstacles(25)
+        self._reaper_spawned = False
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -121,6 +127,16 @@ class Game:
 
         # 1. Игрок
         self.player.handle_input(dt)
+
+        # 1.5 Коллизия игрока с препятствиями
+        for obs in self.obstacles:
+            if obs.collides_with(self.player.pos, self.player.radius):
+                # Выталкиваем игрока
+                d = self.player.pos - obs.pos
+                if d.length() > 0:
+                    d = d.normalize()
+                    self.player.pos = obs.pos + d * (obs.radius + self.player.radius + 1)
+
         self.camera.update(self.player.pos.x, self.player.pos.y)
 
         # 2. Волны
@@ -133,6 +149,23 @@ class Game:
         # Обновить boss_alive
         boss_alive = any(e.is_boss and e.alive for e in self.enemies)
         self.wave_mgr.boss_alive = boss_alive
+
+        # 2.5 Жнец на 15 минуте
+        from config import SESSION_DURATION
+        if self.elapsed >= SESSION_DURATION and not hasattr(self, '_reaper_spawned'):
+            self._reaper_spawned = True
+            # Жнец — неубиваемый босс
+            from enemies import Enemy
+            reaper = Enemy("antichrist", self.player.pos.x, self.player.pos.y - 500, 99)
+            reaper.hp = 999999
+            reaper.max_hp = 999999
+            reaper.damage = 9999
+            reaper.speed = 2.0
+            reaper.radius = 50
+            reaper.color = (50, 50, 50)
+            reaper.blood_color = (100, 100, 100)
+            self.enemies.append(reaper)
+            shake.trigger(15, 0.5)
 
         # 3. Оружие
         for w in self.player.weapons:
@@ -225,7 +258,13 @@ class Game:
                 self.player.kills += 1
                 self.player.gold += e.score // 10
 
-        # Очистка
+        # Очистка + деспавн далёких врагов
+        from config import DESPAWN_DISTANCE
+        for e in self.enemies:
+            if e.alive and not e.is_boss:
+                dist = (e.pos - self.player.pos).length()
+                if dist > DESPAWN_DISTANCE:
+                    e.alive = False
         self.enemies = [e for e in self.enemies if e.alive]
         self.projectiles = [p for p in self.projectiles if p.alive]
         self.gems = [g for g in self.gems if g.alive]
@@ -295,11 +334,15 @@ class Game:
         cam_y = self.camera.cam_y + shake.offset_y
 
         # Фон (сетка)
-        draw_grid(screen, cam_x, cam_y)
+        draw_grid(screen, cam_x, cam_y, self.player.pos.x, self.player.pos.y)
 
         # Пульсы (AoE)
         for p in self.pulses:
             p.draw(screen, cam_x, cam_y)
+
+        # Препятствия
+        for obs in self.obstacles:
+            obs.draw(screen, cam_x, cam_y)
 
         # XP-гемы
         for g in self.gems:

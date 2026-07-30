@@ -35,7 +35,42 @@ SPAWN_DISTANCE = 40  # пикселей за экраном
 # === ВОЛНЫ ===
 WAVE_DURATION = 25.0  # секунд на волну
 BOSS_EVERY_N_WAVES = 3
-WAVE_30_BOSS = 30  # Жнец
+SESSION_DURATION = 15 * 60  # 15 минут в секундах
+DESPAWN_DISTANCE = 1500  # деспавн врагов за этой дистанцией от игрока
+
+# === БИОМЫ ===
+CENTER_X = MAP_WIDTH // 2
+CENTER_Y = MAP_HEIGHT // 2
+
+BIOMES = [
+    {"name": "Руины",       "radius": 1000, "bg": (26, 26, 46),   "grid": (40, 35, 60)},
+    {"name": "Кладбище",    "radius": 2000, "bg": (13, 13, 26),   "grid": (25, 25, 40)},
+    {"name": "Адский лес",  "radius": 3000, "bg": (26, 13, 13),   "grid": (45, 25, 25)},
+    {"name": "Пустошь",     "radius": 4000, "bg": (13, 13, 13),   "grid": (30, 30, 25)},
+]
+
+# === МЕТА-ПРОГРЕССИЯ ===
+POWERUP_COSTS = [100, 200, 400, 800]  # 4 уровня
+LUCKY_COSTS = [200, 400, 800, 1600]
+REVIVE_COSTS = [500, 1000, 2000]  # 3 уровня
+
+POWERUP_DEFS = {
+    "might":     {"name": "Мощь",       "desc": "+5% базовый урон",   "max": 4, "costs": POWERUP_COSTS},
+    "sturdiness":{"name": "Стойкость",  "desc": "+10% макс HP",       "max": 4, "costs": POWERUP_COSTS},
+    "swiftness": {"name": "Проворство", "desc": "+5% скорость",       "max": 4, "costs": POWERUP_COSTS},
+    "greed":     {"name": "Жадность",   "desc": "+10% золото",        "max": 4, "costs": POWERUP_COSTS},
+    "luck":      {"name": "Удача",      "desc": "+10% шанс 4-го варианта", "max": 4, "costs": LUCKY_COSTS},
+    "revive":    {"name": "Воскрешение","desc": "1 возрождение (30% HP)", "max": 3, "costs": REVIVE_COSTS},
+}
+
+# === ДОСТИЖЕНИЯ ===
+ACHIEVEMENTS = {
+    "survive_5":    {"name": "5 минут",       "desc": "Дожить до 5 минут",  "unlock": "inquisitor"},
+    "first_boss":   {"name": "Первый босс",   "desc": "Убить первого босса", "unlock": "weapon_lightning"},
+    "survive_10":   {"name": "10 минут",      "desc": "Дожить до 10 минут", "unlock": "weapon_prayer"},
+    "gold_10000":   {"name": "Богач",         "desc": "Накопить 10000 золота","unlock": "powerup_revive"},
+    "kill_reaper":  {"name": "Убийца Жнеца",  "desc": "Убить Жнеца",        "unlock": "char_secret"},
+}
 
 # === XP ===
 XP_BASE = 5  # XP для уровня 1→2

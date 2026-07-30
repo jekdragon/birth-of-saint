@@ -107,8 +107,13 @@ class Game:
         self.player.max_hp = int(self.player.max_hp * self.meta.get_powerup_bonus("sturdiness"))
         self.player.hp = self.player.max_hp
 
-        # Препятствия
-        self.obstacles = generate_obstacles(25)
+        # Препятствия (карта)
+        self.current_map = self.menu.selected_map
+        if self.current_map == "cathedral":
+            from cathedral import generate_cathedral
+            self.obstacles = generate_cathedral()
+        else:
+            self.obstacles = generate_obstacles(25)
         self._reaper_spawned = False
 
     def handle_events(self):
@@ -391,7 +396,23 @@ class Game:
         cam_y = self.camera.cam_y + shake.offset_y
 
         # Фон (сетка)
-        draw_grid(screen, cam_x, cam_y, self.player.pos.x, self.player.pos.y)
+        if hasattr(self, 'current_map') and self.current_map == "cathedral":
+            from cathedral import get_cathedral_biome, CATHEDRAL_COLORS
+            biome = get_cathedral_biome(self.player.pos.x, self.player.pos.y)
+            screen.fill(biome["bg"])
+            # Рисуем сетку собора
+            cam_x2 = cam_x
+            cam_y2 = cam_y
+            start_col = int(cam_x2 // 64)
+            start_row = int(cam_y2 // 64)
+            for col in range(start_col, start_col + 17):
+                x = int(col * 64 - cam_x2)
+                pygame.draw.line(screen, biome["grid"], (x, 0), (x, HEIGHT))
+            for row in range(start_row, start_row + 13):
+                y = int(row * 64 - cam_y2)
+                pygame.draw.line(screen, biome["grid"], (0, y), (WIDTH, y))
+        else:
+            draw_grid(screen, cam_x, cam_y, self.player.pos.x, self.player.pos.y)
 
         # Пульсы (AoE)
         for p in self.pulses:

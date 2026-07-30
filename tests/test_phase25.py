@@ -111,7 +111,7 @@ try:
         already = any(w.weapon_id == wid for w in g3.player.weapons)
         if not already:
             g3.player.weapons.append(create_weapon(wid))
-    check("All weapons equipped", len(g3.player.weapons) == 6)
+    check("All weapons equipped", len(g3.player.weapons) == 9)
 
     # Заспавнить врага рядом
     e = Enemy("neophyte", 2010, 2000, 1)

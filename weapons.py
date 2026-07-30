@@ -64,6 +64,35 @@ WEAPON_DEFS = {
         "radius_base": 150, "radius_per_lvl": 20,
         "color": (180, 180, 255),
     },
+    # Новое оружие
+    "incense": {
+        "name": "Кадило",
+        "type": "orbit",
+        "damage_base": 8, "damage_per_lvl": 3,
+        "cooldown_base": 0.0, "cd_reduction": 0, "cd_min": 0,
+        "count_base": 1, "count_per_lvl": 0.5,
+        "radius_base": 100, "radius_per_lvl": 15,
+        "color": (200, 180, 140),
+        "evolve_passive": "magnet", "evolve_name": "Кадило фимиама",
+    },
+    "cross": {
+        "name": "Крест",
+        "type": "directional",
+        "damage_base": 20, "damage_per_lvl": 8,
+        "cooldown_base": 1.8, "cd_reduction": 0.15, "cd_min": 0.6,
+        "projectile_speed": 5.0, "projectile_size": 16,
+        "color": (255, 220, 100),
+        "evolve_passive": "armor", "evolve_name": "Крест искупления",
+    },
+    "bell": {
+        "name": "Колокол",
+        "type": "ring",
+        "damage_base": 25, "damage_per_lvl": 10,
+        "cooldown_base": 3.0, "cd_reduction": 0.25, "cd_min": 1.0,
+        "radius_base": 200, "radius_per_lvl": 25,
+        "color": (220, 200, 160),
+        "evolve_passive": "luck", "evolve_name": "Колокол судного дня",
+    },
 }
 
 PASSIVE_DEFS = {
@@ -391,6 +420,83 @@ class PrayerWeapon(Weapon):
             pulses.append(Pulse(player.pos.x, player.pos.y, radius, d["color"], duration=0.3))
 
 
+class IncenseWeapon(Weapon):
+    """Кадило — орбитальное оружие вокруг игрока."""
+    def __init__(self):
+        super().__init__("incense")
+        self.angle = 0.0
+
+    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers, dt):
+        d = self.defn
+        count = int(d["count_base"] + self.level * d["count_per_lvl"])
+        radius = (d["radius_base"] + self.level * d["radius_per_lvl"]) * player.area_mult
+        damage = (d["damage_base"] + self.level * d["damage_per_lvl"]) * player.damage_mult
+        self.angle += dt * 2.0  # скорость вращения
+
+        for i in range(count):
+            a = self.angle + (2 * 3.14159 / count) * i
+            ox = player.pos.x + math.cos(a) * radius
+            oy = player.pos.y + math.sin(a) * radius
+            for e in enemies:
+                if not e.alive:
+                    continue
+                dx = e.pos.x - ox
+                dy = e.pos.y - oy
+                if dx * dx + dy * dy < (15 + e.radius) ** 2:
+                    e.take_damage(damage * dt * 5)  # DPS
+                    if int(self.angle * 10) % 5 == 0:
+                        damage_numbers.append(DamageNumber(e.pos.x, e.pos.y, damage, d["color"]))
+
+
+class CrossWeapon(Weapon):
+    """Крест — стреляет крестами в направлении движения."""
+    def __init__(self):
+        super().__init__("cross")
+
+    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers, dt):
+        self.timer += dt
+        d = self.defn
+        cd = max(d["cd_min"], d["cooldown_base"] - self.level * d["cd_reduction"]) * player.cooldown_mult
+        damage = (d["damage_base"] + self.level * d["damage_per_lvl"]) * player.damage_mult
+
+        if self.timer >= cd:
+            self.timer = 0
+            projectiles.append(Projectile(
+                player.pos.x, player.pos.y,
+                player.facing.x * d["projectile_speed"],
+                player.facing.y * d["projectile_speed"],
+                damage, d["projectile_size"],
+                color=d["color"],
+                pierce=1 + player.projectiles_bonus
+            ))
+
+
+class BellWeapon(Weapon):
+    """Колокол — мощная AoE волна с длинным кулдауном."""
+    def __init__(self):
+        super().__init__("bell")
+
+    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers, dt):
+        self.timer += dt
+        d = self.defn
+        cd = max(d["cd_min"], d["cooldown_base"] - self.level * d["cd_reduction"]) * player.cooldown_mult
+        radius = (d["radius_base"] + self.level * d["radius_per_lvl"]) * player.area_mult
+        damage = (d["damage_base"] + self.level * d["damage_per_lvl"]) * player.damage_mult
+
+        if self.timer >= cd:
+            self.timer = 0
+            for e in enemies:
+                if not e.alive:
+                    continue
+                dx = e.pos.x - player.pos.x
+                dy = e.pos.y - player.pos.y
+                if dx * dx + dy * dy < (radius + e.radius) ** 2:
+                    e.take_damage(damage)
+                    damage_numbers.append(DamageNumber(e.pos.x, e.pos.y, damage, d["color"]))
+
+            pulses.append(Pulse(player.pos.x, player.pos.y, radius, d["color"], duration=0.5))
+
+
 WEAPON_CLASSES = {
     "whip": WhipWeapon,
     "fire": FireWeapon,
@@ -398,6 +504,9 @@ WEAPON_CLASSES = {
     "rosary": RosaryWeapon,
     "lightning": LightningWeapon,
     "prayer": PrayerWeapon,
+    "incense": IncenseWeapon,
+    "cross": CrossWeapon,
+    "bell": BellWeapon,
 }
 
 

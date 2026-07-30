@@ -40,7 +40,7 @@ def init_pygame():
     pygame.init()
     # На emscripten (pygbag WASM) canvas уже создан шаблоном фиксированного
     # размера (1280x720). pygame.SCALED позволяет SDL2 смасштабировать наш
-    # виртуальный framebuffer (WIDTH x HEIGHT) под реальный canvas — без этого
+    # виртуальный framebuffer (WIDTH x HEIGHT) под реальный canvas - без этого
     # флага на WASM часто получается пустой/серый экран.
     if sys.platform == "emscripten":
         screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED, vsync=0)

@@ -1,5 +1,5 @@
 """
-Рождение святого — Lobby
+Рождение святого - Lobby
 Магазин PowerUp между ранами. Достижения. Мета-прогрессия.
 """
 import pygame
@@ -141,7 +141,7 @@ class LobbyScreen:
                 self.active = False
                 return "play"
             elif event.key == pygame.K_TAB:
-                # TAB — выбрать/отменить текущую аркану
+                # TAB - выбрать/отменить текущую аркану
                 aid = arcana_ids[self.arcana_selected]
                 if self.meta.selected_arcana == aid:
                     self.meta.selected_arcana = None
@@ -227,7 +227,7 @@ class LobbyScreen:
             done = aid in self.meta.achievements_done
             color = GREEN if done else (100, 100, 100)
             prefix = "✓" if done else "✗"
-            text = small_font.render(f"{prefix} {adef['name']} — {adef['desc']}", True, color)
+            text = small_font.render(f"{prefix} {adef['name']} - {adef['desc']}", True, color)
             surface.blit(text, (20, y))
             y += 20
 
@@ -282,7 +282,7 @@ class LobbyScreen:
 
         # Подсказка
         hint = small_font.render(
-            "↑↓ — выбор powerup  |  ←→ — выбор арканы  |  TAB — выбрать/снять  |  ENTER — купить  |  ESC — начать ран",
+            "↑↓ - выбор powerup  |  ←→ - выбор арканы  |  TAB - выбрать/снять  |  ENTER - купить  |  ESC - начать ран",
             True, (120, 120, 120)
         )
         surface.blit(hint, (WIDTH // 2 - hint.get_width() // 2, HEIGHT - 30))

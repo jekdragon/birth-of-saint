@@ -1,7 +1,7 @@
 """
-Рождение святого — Save System
+Рождение святого - Save System
 Сохранение/загрузка мета-прогресса.
-В браузере — localStorage, на десктопе — JSON файл.
+В браузере - localStorage, на десктопе - JSON файл.
 """
 import json
 import os

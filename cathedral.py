@@ -1,5 +1,5 @@
 """
-Рождение святого — Map: Собор
+Рождение святого - Map: Собор
 Вторая карта: узкие коридоры, залы, колонны.
 Отличается от Арены тем, что препятствия образуют структуру.
 """
@@ -73,7 +73,7 @@ def generate_cathedral() -> list:
     obstacles = []
     cx, cy = CENTER_X, CENTER_Y
 
-    # Главный зал (центр) — 4 колонны по углам
+    # Главный зал (центр) - 4 колонны по углам
     for dx, dy in [(-200, -200), (200, -200), (-200, 200), (200, 200)]:
         obstacles.append(CathedralObstacle(cx + dx, cy + dy, "column"))
 
@@ -121,7 +121,7 @@ def generate_cathedral() -> list:
 
 
 def get_cathedral_biome(player_x: float, player_y: float) -> dict:
-    """Биом Собора — единый стиль."""
+    """Биом Собора - единый стиль."""
     return {
         "name": "Собор",
         "bg": CATHEDRAL_COLORS["bg"],

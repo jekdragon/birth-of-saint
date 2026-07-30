@@ -1,5 +1,5 @@
 """
-Рождение святого — Projectiles & Particles
+Рождение святого - Projectiles & Particles
 Снаряды, частицы, визуальные эффекты атак.
 """
 import math

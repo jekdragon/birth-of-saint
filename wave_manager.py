@@ -1,5 +1,5 @@
 """
-Рождение святого — Wave Manager
+Рождение святого - Wave Manager
 Система волн: спавн врагов, нарастающая сложность, map events.
 """
 import random
@@ -9,7 +9,7 @@ from config import WIDTH, HEIGHT, MAP_WIDTH, MAP_HEIGHT, SPAWN_DISTANCE, WAVE_DU
 from enemies import Enemy, ENEMY_TYPES
 
 
-# Map events — привязаны к конкретным секундам внутри волны
+# Map events - привязаны к конкретным секундам внутри волны
 MAP_EVENTS = [
     {"wave": 6,  "time": 10, "type": "swarm",    "count": 50, "desc": "Рой"},
     {"wave": 8,  "time": 5,  "type": "surround",  "count": 30, "desc": "Окружение"},
@@ -108,7 +108,7 @@ class WaveManager:
         return Enemy("antichrist", x, y, self.wave)
 
     def spawn_event_swarm(self, count: int, cam_x: float, cam_y: float) -> list:
-        """Рой — много врагов с одной стороны."""
+        """Рой - много врагов с одной стороны."""
         enemies = []
         side = random.choice(["top", "bottom", "left", "right"])
         for _ in range(count):
@@ -130,7 +130,7 @@ class WaveManager:
         return enemies
 
     def spawn_event_surround(self, count: int, player_pos: pygame.Vector2) -> list:
-        """Окружение — враги кольцом вокруг игрока."""
+        """Окружение - враги кольцом вокруг игрока."""
         enemies = []
         for i in range(count):
             angle = (2 * math.pi / count) * i
@@ -143,7 +143,7 @@ class WaveManager:
         return enemies
 
     def spawn_event_elite(self, count: int, cam_x: float, cam_y: float) -> list:
-        """Элита — усиленные враги."""
+        """Элита - усиленные враги."""
         enemies = []
         for _ in range(count):
             e = self.spawn_enemy(self.wave, cam_x, cam_y)
@@ -152,7 +152,7 @@ class WaveManager:
             e.damage *= 2
             e.xp *= 5
             e.radius = int(e.radius * 1.3)
-            e.color = (255, 215, 0)  # золотой — маркер элиты
+            e.color = (255, 215, 0)  # золотой - маркер элиты
             enemies.append(e)
         return enemies
 

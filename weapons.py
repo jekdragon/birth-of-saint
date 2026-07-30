@@ -1,5 +1,5 @@
 """
-Рождение святого — Weapons
+Рождение святого - Weapons
 6 типов оружия: whip, fire, halo, rosary, lightning, prayer.
 """
 import math
@@ -424,7 +424,7 @@ class PrayerWeapon(Weapon):
 
 
 class IncenseWeapon(Weapon):
-    """Кадило — орбитальное оружие вокруг игрока."""
+    """Кадило - орбитальное оружие вокруг игрока."""
     def __init__(self):
         super().__init__("incense")
         self.angle = 0.0
@@ -457,7 +457,7 @@ class IncenseWeapon(Weapon):
 
 
 class CrossWeapon(Weapon):
-    """Крест — стреляет крестами в направлении движения."""
+    """Крест - стреляет крестами в направлении движения."""
     def __init__(self):
         super().__init__("cross")
 
@@ -484,7 +484,7 @@ class CrossWeapon(Weapon):
 
 
 class BellWeapon(Weapon):
-    """Колокол — мощная AoE волна с длинным кулдауном."""
+    """Колокол - мощная AoE волна с длинным кулдауном."""
     def __init__(self):
         super().__init__("bell")
 

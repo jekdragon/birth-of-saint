@@ -1,5 +1,5 @@
 """
-Рождение святого — Menu
+Рождение святого - Menu
 Главное меню, выбор персонажа, Game Over.
 """
 import pygame
@@ -95,14 +95,14 @@ class MainMenu:
         surface.blit(char_desc, (WIDTH // 2 - char_desc.get_width() // 2, 350))
 
         # Управление
-        start_text = font.render("[ENTER] — Начать", True, WHITE)
+        start_text = font.render("[ENTER] - Начать", True, WHITE)
         surface.blit(start_text, (WIDTH // 2 - start_text.get_width() // 2, 440))
 
-        char_sel = small_font.render("[C] — Выбор персонажа", True, (150, 150, 150))
+        char_sel = small_font.render("[C] - Выбор персонажа", True, (150, 150, 150))
         surface.blit(char_sel, (WIDTH // 2 - char_sel.get_width() // 2, 480))
 
         # Управление в игре
-        controls = small_font.render("WASD — движение | 1/2/3 — выбор при левелапе", True, (100, 100, 100))
+        controls = small_font.render("WASD - движение | 1/2/3 - выбор при левелапе", True, (100, 100, 100))
         surface.blit(controls, (WIDTH // 2 - controls.get_width() // 2, 560))
 
     def draw_char_select(self, surface: pygame.Surface, font, small_font):
@@ -130,7 +130,7 @@ class MainMenu:
 
             y += 110
 
-        hint = small_font.render("[ESC] — назад", True, (100, 100, 100))
+        hint = small_font.render("[ESC] - назад", True, (100, 100, 100))
         surface.blit(hint, (WIDTH // 2 - hint.get_width() // 2, y + 20))
 
     def draw_game_over(self, surface: pygame.Surface, font, big_font, small_font):
@@ -169,15 +169,15 @@ class MainMenu:
             for i, e in enumerate(entries[:5]):
                 is_current = (i + 1 == rank) if rank else False
                 color = GOLD if is_current else WHITE
-                line = f"{i+1}. {e['character']} — Волна {e['wave']} | {e['kills']} убийств | {e['survived']}с"
+                line = f"{i+1}. {e['character']} - Волна {e['wave']} | {e['kills']} убийств | {e['survived']}с"
                 text = small_font.render(line, True, color)
                 surface.blit(text, (WIDTH // 2 - text.get_width() // 2, y))
                 y += 20
 
-        restart_text = font.render("[R] — Заново", True, WHITE)
+        restart_text = font.render("[R] - Заново", True, WHITE)
         surface.blit(restart_text, (WIDTH // 2 - restart_text.get_width() // 2, HEIGHT - 80))
 
-        menu_text = small_font.render("[ESC] — В меню", True, (150, 150, 150))
+        menu_text = small_font.render("[ESC] - В меню", True, (150, 150, 150))
         surface.blit(menu_text, (WIDTH // 2 - menu_text.get_width() // 2, HEIGHT - 50))
 
     def draw_map_select(self, surface: pygame.Surface, font, small_font):
@@ -194,7 +194,7 @@ class MainMenu:
             desc = small_font.render(m['desc'], True, (150, 150, 150))
             surface.blit(desc, (WIDTH // 2 - 100, y + 25))
 
-        hint = small_font.render("1/2 — выбор  |  ESC — назад", True, (120, 120, 120))
+        hint = small_font.render("1/2 - выбор  |  ESC - назад", True, (120, 120, 120))
         surface.blit(hint, (WIDTH // 2 - hint.get_width() // 2, HEIGHT - 50))
 
     def draw(self, surface, font, big_font, small_font):

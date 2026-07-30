@@ -1,5 +1,5 @@
 """
-Рождение святого — Visual Effects
+Рождение святого - Visual Effects
 Screen shake, flash, grid rendering.
 """
 import pygame

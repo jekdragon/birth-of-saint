@@ -1,5 +1,5 @@
 """
-Рождение святого — XP System & Level Up Screen
+Рождение святого - XP System & Level Up Screen
 XP-гемы, левелап, выбор предмета.
 """
 import random
@@ -88,7 +88,7 @@ class LevelUpScreen:
                 if current > 0 or len(player.passives) < MAX_PASSIVES:
                     pool.append({"type": "passive", "id": pid, "current_level": current})
 
-        # Если пул пуст — золото/HP
+        # Если пул пуст - золото/HP
         if not pool:
             return [{"type": "gold", "id": "gold", "amount": 50},
                     {"type": "heal", "id": "heal", "amount": 30},
@@ -160,7 +160,7 @@ class LevelUpScreen:
         surface.blit(title, (WIDTH // 2 - title.get_width() // 2, 100))
 
         # Подсказка
-        hint = small_font.render("Нажми 1, 2 или 3  |  R — реролл ({})".format(self.rerolls_left), True, WHITE)
+        hint = small_font.render("Нажми 1, 2 или 3  |  R - реролл ({})".format(self.rerolls_left), True, WHITE)
         surface.blit(hint, (WIDTH // 2 - hint.get_width() // 2, 140))
 
         # Карточки

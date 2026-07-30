@@ -1,5 +1,5 @@
 """
-Рождение святого — Main Game Loop
+Рождение святого - Main Game Loop
 Точка входа. Game loop: input → update → render.
 """
 import asyncio
@@ -206,7 +206,7 @@ class Game:
         from config import SESSION_DURATION
         if self.elapsed >= SESSION_DURATION and not self._reaper_spawned:
             self._reaper_spawned = True
-            # Жнец — неубиваемый босс
+            # Жнец - неубиваемый босс
             from enemies import Enemy
             reaper = Enemy("antichrist", self.player.pos.x, self.player.pos.y - 500, 99)
             reaper.hp = 999999
@@ -229,7 +229,7 @@ class Game:
         for e in self.enemies:
             if not e.alive:
                 continue
-            # Аркана: Ярость орды — ускорение врагов
+            # Аркана: Ярость орды - ускорение врагов
             shot = None
             if enemy_speed_mult != 1.0:
                 orig_speed = e.speed
@@ -341,7 +341,7 @@ class Game:
                     sound_mgr.play("gem_pickup")
                 self.check_levelup()
 
-        # 6.5 Реликвии — спавн + обновление + подбор
+        # 6.5 Реликвии - спавн + обновление + подбор
         new_relic = self.relic_mgr.update(dt, len([r for r in self.relics if r.alive]), self.player.pos)
         if new_relic:
             self.relics.append(new_relic)

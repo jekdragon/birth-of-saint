@@ -1,5 +1,5 @@
 """
-Рождение святого — Leaderboard
+Рождение святого - Leaderboard
 Локальная таблица рекордов (localStorage в браузере, JSON на десктопе).
 """
 import json

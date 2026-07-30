@@ -1,5 +1,5 @@
 """
-Рождение святого — Enemies
+Рождение святого - Enemies
 Типы врагов, спавн, AI, урон.
 """
 import math
@@ -147,7 +147,7 @@ class Enemy:
         if not self.alive:
             return None
 
-        # Стан — пропускаем движение
+        # Стан - пропускаем движение
         if self.stun_timer > 0:
             self.stun_timer -= dt
             return None
@@ -174,7 +174,7 @@ class Enemy:
                     if self.hit_flash > 0:
                         self.hit_flash -= dt
                     return shot
-                # В пределах дистанции — стоим и ждём кулдаун
+                # В пределах дистанции - стоим и ждём кулдаун
                 if self.hit_flash > 0:
                     self.hit_flash -= dt
                 return None

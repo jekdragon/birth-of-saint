@@ -1,5 +1,5 @@
 """
-Рождение святого — Camera
+Рождение святого - Camera
 Камера следит за игроком, скроллит карту.
 """
 from config import WIDTH, HEIGHT, MAP_WIDTH, MAP_HEIGHT

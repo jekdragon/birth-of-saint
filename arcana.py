@@ -1,5 +1,5 @@
 """
-Рождение святого — Arcana System
+Рождение святого - Arcana System
 Модификаторы, меняющие правила рана. Игрок выбирает 1 аркану перед стартом.
 """
 import random
@@ -80,7 +80,7 @@ class DoubleThreatArcana(Arcana):
         # Ускоряем спавн
         game.wave_mgr.spawn_interval *= 0.5
         game.wave_mgr.spawn_interval = max(game.wave_mgr.spawn_interval, 0.15)
-        # Флаг для XP бонуса — проверяется в on_enemy_killed / update
+        # Флаг для XP бонуса - проверяется в on_enemy_killed / update
         game.arcana_data["xp_mult"] = 1.5
 
 

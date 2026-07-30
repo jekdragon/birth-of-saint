@@ -52,6 +52,8 @@ camera.py        — camera follow, scroll
 effects.py       — screen shake, flash, grid rendering
 sounds.py        — synth-based sound generation
 menu.py          — main menu, character select, game over
+assets/          — sprites, sounds, tiles (docs in assets/README.md)
+graphify-out/    — dependency graph (283 nodes, 449 edges)
 ```
 
 ## Rules

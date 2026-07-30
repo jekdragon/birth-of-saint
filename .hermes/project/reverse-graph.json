@@ -18,21 +18,29 @@
     "main.py",
     "xp_system.py"
   ],
-  "enemies.py": [
+  "wave_manager.py": [
+    "main.py"
+  ],
+  "player.py": [
     "main.py",
-    "wave_manager.py"
+    "menu.py"
   ],
   "sounds.py": [
     "main.py"
   ],
-  "wave_manager.py": [
+  "effects.py": [
     "main.py"
   ],
   "menu.py": [
     "main.py"
   ],
-  "xp_system.py": [
-    "main.py"
+  "enemies.py": [
+    "main.py",
+    "wave_manager.py"
+  ],
+  "projectiles.py": [
+    "main.py",
+    "weapons.py"
   ],
   "hud.py": [
     "main.py"
@@ -40,15 +48,7 @@
   "camera.py": [
     "main.py"
   ],
-  "effects.py": [
+  "xp_system.py": [
     "main.py"
-  ],
-  "projectiles.py": [
-    "main.py",
-    "weapons.py"
-  ],
-  "player.py": [
-    "main.py",
-    "menu.py"
   ]
 }

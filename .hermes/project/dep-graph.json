@@ -9,26 +9,26 @@
     "config.py"
   ],
   "hud.py": [
-    "weapons.py",
-    "config.py"
+    "config.py",
+    "weapons.py"
   ],
   "main.py": [
-    "enemies.py",
-    "weapons.py",
-    "sounds.py",
     "wave_manager.py",
-    "menu.py",
-    "xp_system.py",
+    "weapons.py",
+    "player.py",
     "config.py",
+    "sounds.py",
+    "effects.py",
+    "menu.py",
+    "enemies.py",
+    "projectiles.py",
     "hud.py",
     "camera.py",
-    "effects.py",
-    "projectiles.py",
-    "player.py"
+    "xp_system.py"
   ],
   "menu.py": [
-    "player.py",
-    "config.py"
+    "config.py",
+    "player.py"
   ],
   "player.py": [
     "config.py"
@@ -40,15 +40,15 @@
     "config.py"
   ],
   "wave_manager.py": [
-    "enemies.py",
-    "config.py"
+    "config.py",
+    "enemies.py"
   ],
   "weapons.py": [
-    "projectiles.py",
-    "config.py"
+    "config.py",
+    "projectiles.py"
   ],
   "xp_system.py": [
-    "weapons.py",
-    "config.py"
+    "config.py",
+    "weapons.py"
   ]
 }

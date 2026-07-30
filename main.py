@@ -70,6 +70,7 @@ class Game:
         self.pulses = []
         self.obstacles = []
         self.elapsed = 0.0
+        self._reaper_spawned = False
 
     def start_game(self, char_id: str):
         """Начинает новую игру."""
@@ -173,7 +174,7 @@ class Game:
 
         # 2.5 Жнец на 15 минуте
         from config import SESSION_DURATION
-        if self.elapsed >= SESSION_DURATION and not hasattr(self, '_reaper_spawned'):
+        if self.elapsed >= SESSION_DURATION and not self._reaper_spawned:
             self._reaper_spawned = True
             # Жнец — неубиваемый босс
             from enemies import Enemy

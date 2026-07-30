@@ -81,19 +81,20 @@
 **Goal:** Проверить что изменения в одном файле не сломали зависимые
 
 ### Milestones
-- [ ] Rescan зависимостей: `project.py init` после Phase 2
-- [ ] Impact check для config.py (12 зависимых файлов)
-- [ ] Impact check для weapons.py (3 зависимых)
-- [ ] Impact check для projectiles.py (4 зависимых)
-- [ ] Impact check для enemies.py (2 зависимых)
-- [ ] Impact check для player.py (2 зависимых)
-- [ ] Проверка circular imports (нет циклических зависимостей)
-- [ ] Проверка broken imports (все импорты резолвятся)
-- [ ] Проверка что AGENTS.md актуален (структура файлов совпадает)
-- [ ] Smoke test после ревью: game loop работает
+- [x] Rescan зависимостей: `project.py init` после Phase 2 (16 файлов, 45 рёбер, 146 символов)
+- [x] Impact check для config.py (15 зависимых) — CRITICAL
+- [x] Impact check для weapons.py (4 зависимых) — LOW
+- [x] Impact check для projectiles.py (3 зависимых) — LOW
+- [x] Impact check для enemies.py (3 зависимых) — LOW
+- [x] Impact check для player.py (3 зависимых) — LOW
+- [x] Проверка circular imports — НЕТ циклических зависимостей
+- [x] Проверка broken imports — все импорты резолвятся
+- [x] Проверка что AGENTS.md актуален (структура файлов совпадает)
+- [x] Smoke test после ревью: 44/44 тестов пройдено
+- [x] Graphify обновлён (331 nodes, 560 edges, 15 communities)
 
 **Criteria:** 0 broken imports, 0 circular imports, все impact checks пройдены
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 **Dependencies:** Phase 2.5 complete
 
 ---
@@ -153,7 +154,7 @@ Phase 1 → Phase 2 → Phase 2.5 (Testing) → Phase 2.6 (Dep Review) → Phase
 3. **Размер билда** → Mitigation: процедурные звуки, минимум ассетов
 
 ## 📍 Current State
-**Мы здесь:** Phase 2.5 Complete → Phase 2.6 (Dep Review)
+**Мы здесь:** Phase 2.6 Complete → Phase 3 (Расширение)
 **Обновлено:** 2026-07-30
 
 ## 📅 Review Cadence

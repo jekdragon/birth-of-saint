@@ -76,6 +76,28 @@
 
 ---
 
+## 🔍 Phase 2.6: Ревью зависимых файлов
+
+**Goal:** Проверить что изменения в одном файле не сломали зависимые
+
+### Milestones
+- [ ] Rescan зависимостей: `project.py init` после Phase 2
+- [ ] Impact check для config.py (12 зависимых файлов)
+- [ ] Impact check для weapons.py (3 зависимых)
+- [ ] Impact check для projectiles.py (4 зависимых)
+- [ ] Impact check для enemies.py (2 зависимых)
+- [ ] Impact check для player.py (2 зависимых)
+- [ ] Проверка circular imports (нет циклических зависимостей)
+- [ ] Проверка broken imports (все импорты резолвятся)
+- [ ] Проверка что AGENTS.md актуален (структура файлов совпадает)
+- [ ] Smoke test после ревью: game loop работает
+
+**Criteria:** 0 broken imports, 0 circular imports, все impact checks пройдены
+**Status:** ⬜ Not started
+**Dependencies:** Phase 2.5 complete
+
+---
+
 ## 🔮 Later — Phase 3: Расширение
 
 **Goal:** Реиграбельность, глубина, контент
@@ -115,7 +137,7 @@
 ---
 
 ## 🔗 Dependency Map
-Phase 1 → Phase 2 → Phase 2.5 (Testing) → Phase 3 → Phase 4 (sequential)
+Phase 1 → Phase 2 → Phase 2.5 (Testing) → Phase 2.6 (Dep Review) → Phase 3 → Phase 4 (sequential)
 
 ## 📈 KPIs
 | Metric | Baseline | Target | Measurement |

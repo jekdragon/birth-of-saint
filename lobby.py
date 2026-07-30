@@ -8,6 +8,7 @@ from config import (
     POWERUP_DEFS, ACHIEVEMENTS, POWERUP_COSTS, LUCKY_COSTS, REVIVE_COSTS
 )
 from arcana import ARCANA_DEFS, Arcana
+from save_system import save_progress
 
 
 class MetaProgress:
@@ -93,15 +94,22 @@ class LobbyScreen:
     """Экран лобби с магазином PowerUp."""
     def __init__(self):
         self.active = False
-        self.selected = 0
+        self.selected = 0  # индекс в списке powerups
+        self.arcana_selected = 0  # индекс в списке аркан
         self.meta = None
-        self.notification = ""  # текст уведомления
+        self.notification = ""
         self.notify_timer = 0.0
 
     def activate(self, meta: MetaProgress):
         self.active = True
         self.meta = meta
         self.selected = 0
+        # Синхронизируем индекс с уже выбранной арканой
+        arcana_ids = list(ARCANA_DEFS.keys())
+        if meta.selected_arcana and meta.selected_arcana in arcana_ids:
+            self.arcana_selected = arcana_ids.index(meta.selected_arcana)
+        else:
+            self.arcana_selected = 0
 
     def handle_event(self, event) -> str:
         """Возвращает: 'play', None"""
@@ -110,11 +118,16 @@ class LobbyScreen:
 
         if event.type == pygame.KEYDOWN:
             powerup_ids = list(POWERUP_DEFS.keys())
+            arcana_ids = list(ARCANA_DEFS.keys())
 
             if event.key == pygame.K_UP:
                 self.selected = (self.selected - 1) % len(powerup_ids)
             elif event.key == pygame.K_DOWN:
                 self.selected = (self.selected + 1) % len(powerup_ids)
+            elif event.key == pygame.K_LEFT:
+                self.arcana_selected = (self.arcana_selected - 1) % len(arcana_ids)
+            elif event.key == pygame.K_RIGHT:
+                self.arcana_selected = (self.arcana_selected + 1) % len(arcana_ids)
             elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                 pid = powerup_ids[self.selected]
                 if self.meta.buy(pid):
@@ -127,6 +140,17 @@ class LobbyScreen:
             elif event.key == pygame.K_ESCAPE:
                 self.active = False
                 return "play"
+            elif event.key == pygame.K_TAB:
+                # TAB — выбрать/отменить текущую аркану
+                aid = arcana_ids[self.arcana_selected]
+                if self.meta.selected_arcana == aid:
+                    self.meta.selected_arcana = None
+                    self.notification = "Аркана снята"
+                else:
+                    self.meta.selected_arcana = aid
+                    self.notification = f"Аркана: {ARCANA_DEFS[aid]['name']}"
+                self.notify_timer = 2.0
+                save_progress(self.meta)
 
         return None
 
@@ -196,9 +220,9 @@ class LobbyScreen:
 
         # Достижения
         ach_title = font.render("ДОСТИЖЕНИЯ", True, WHITE)
-        surface.blit(ach_title, (20, 480))
+        surface.blit(ach_title, (20, 500))
 
-        y = 510
+        y = 530
         for aid, adef in ACHIEVEMENTS.items():
             done = aid in self.meta.achievements_done
             color = GREEN if done else (100, 100, 100)
@@ -207,11 +231,58 @@ class LobbyScreen:
             surface.blit(text, (20, y))
             y += 20
 
+        # Арканы
+        arcana_x = 550
+        arcana_title_y = 140
+        arcana_title = font.render("АРКАНЫ", True, WHITE)
+        surface.blit(arcana_title, (arcana_x, arcana_title_y))
+
+        arcana_ids = list(ARCANA_DEFS.keys())
+        card_y = arcana_title_y + 30
+        card_w = 440
+        card_h = 60
+
+        for i, aid in enumerate(arcana_ids):
+            adef = ARCANA_DEFS[aid]
+            is_selected = self.meta.selected_arcana == aid
+            is_focused = i == self.arcana_selected
+            x = arcana_x
+            y = card_y + i * (card_h + 6)
+
+            # Фон карточки
+            card_color = (30, 25, 45) if not is_focused else (50, 40, 70)
+            pygame.draw.rect(surface, card_color, (x, y, card_w, card_h), border_radius=6)
+
+            # Рамка: золотая если выбрана, синяя если сфокусирована, серая иначе
+            border_color = GOLD if is_selected else ((100, 140, 255) if is_focused else (50, 45, 65))
+            border_width = 2 if is_selected else (2 if is_focused else 1)
+            pygame.draw.rect(surface, border_color, (x, y, card_w, card_h), border_width, border_radius=6)
+
+            # Иконка/цвет арканы
+            icon_rect = pygame.Rect(x + 6, y + 8, 16, 16)
+            pygame.draw.rect(surface, adef["color"], icon_rect, border_radius=3)
+
+            # Название
+            name_text = font.render(adef["name"], True, adef["color"] if is_selected else WHITE)
+            surface.blit(name_text, (x + 28, y + 5))
+
+            # Описание
+            desc_text = small_font.render(adef["desc"], True, (180, 180, 180))
+            surface.blit(desc_text, (x + 28, y + 26))
+
+            # Метка "ВЫБРАНА"
+            if is_selected:
+                sel_tag = small_font.render("ВЫБРАНА", True, GOLD)
+                surface.blit(sel_tag, (x + card_w - sel_tag.get_width() - 8, y + 8))
+
         # Уведомление
         if self.notify_timer > 0:
             notif = font.render(self.notification, True, GOLD)
-            surface.blit(notif, (WIDTH // 2 - notif.get_width() // 2, HEIGHT - 60))
+            surface.blit(notif, (WIDTH // 2 - notif.get_width() // 2, HEIGHT - 80))
 
         # Подсказка
-        hint = small_font.render("↑↓ — выбор  |  ENTER — купить  |  ESC — начать ран", True, (120, 120, 120))
+        hint = small_font.render(
+            "↑↓ — выбор powerup  |  ←→ — выбор арканы  |  TAB — выбрать/снять  |  ENTER — купить  |  ESC — начать ран",
+            True, (120, 120, 120)
+        )
         surface.blit(hint, (WIDTH // 2 - hint.get_width() // 2, HEIGHT - 30))

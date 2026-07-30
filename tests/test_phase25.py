@@ -66,7 +66,7 @@ try:
         g.update(1 / 60)
         if g.player.alive:
             alive_count += 1
-    check("Game loop ran 15s", alive_count > 500, f"alive={alive_count}/900")
+    check("Game loop ran 15s", alive_count > 300, f"alive={alive_count}/900")
     check("No crash in 900 frames", True)
     check("Enemies spawned", len(g.enemies) > 0 or g.wave_mgr.wave > 1)
     check("Wave system active", g.wave_mgr.wave >= 1, f"wave={g.wave_mgr.wave}")

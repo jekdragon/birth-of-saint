@@ -132,6 +132,7 @@ class Enemy:
 
         self.alive = True
         self.hit_flash = 0.0
+        self.stun_timer = 0.0
 
     def take_damage(self, amount: float) -> bool:
         """Возвращает True если враг умер."""
@@ -144,6 +145,11 @@ class Enemy:
 
     def update(self, player_pos: pygame.Vector2, dt: float):
         if not self.alive:
+            return
+
+        # Стан — пропускаем движение
+        if self.stun_timer > 0:
+            self.stun_timer -= dt
             return
 
         # Движение к игроку

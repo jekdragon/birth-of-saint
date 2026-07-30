@@ -1,9 +1,9 @@
 {
-  "gold": 790,
-  "total_runs": 33,
+  "gold": 791,
+  "total_runs": 41,
   "best_wave": 1,
   "best_time": 10,
-  "total_kills": 13,
+  "total_kills": 14,
   "powerups": {
     "might": 2,
     "sturdiness": 0,
@@ -18,9 +18,9 @@
   ],
   "unlocked_weapons": [
     "halo",
+    "fire",
     "rosary",
-    "whip",
-    "fire"
+    "whip"
   ],
   "achievements_done": []
 }

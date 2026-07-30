@@ -31,6 +31,7 @@ class WaveManager:
         self.min_enemies_per_wave = 5
         self.boss_alive = False
         self.next_boss_wave = BOSS_EVERY_N_WAVES
+        self.boss_every_n_waves = BOSS_EVERY_N_WAVES  # может меняться арканами
         self.triggered_events = set()  # (wave, time) уже сработавшие
 
     def get_unlocked_types(self):
@@ -172,7 +173,7 @@ class WaveManager:
         if (self.wave == self.next_boss_wave and not self.boss_alive and
                 self.wave_timer < 1.0):
             new_enemies.append(self.spawn_boss(cam_x, cam_y))
-            self.next_boss_wave += BOSS_EVERY_N_WAVES
+            self.next_boss_wave += self.boss_every_n_waves
 
         # Спавн обычных врагов
         self.spawn_timer += dt

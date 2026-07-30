@@ -106,6 +106,10 @@ class Player:
         self.gold = 0
         self.kills = 0
 
+        # Аркана-модификаторы (устанавливаются из main при старте)
+        self.arcana_damage_bonus = 1.0
+        self.arcana_no_heal = False
+
         # Состояние
         self.invuln_timer = 0.0
         self.alive = True
@@ -123,6 +127,8 @@ class Player:
             base += 0.1 * (self.level // 10)
         # Реликвия: Священный Грааль +20%
         base += self.relic_bonuses.get("damage", 0.0)
+        # Аркана: Обет молчания +100%
+        base *= self.arcana_damage_bonus
         return base
 
     @property
@@ -134,11 +140,17 @@ class Player:
 
     @property
     def area_mult(self) -> float:
-        return calc_area_mult(self.get_passive_level("area"))
+        base = calc_area_mult(self.get_passive_level("area"))
+        # Реликвия: Рог Демона +25%
+        base += self.relic_bonuses.get("area", 0.0)
+        return base
 
     @property
     def speed_mult(self) -> float:
-        return calc_speed_mult(self.get_passive_level("speed"))
+        base = calc_speed_mult(self.get_passive_level("speed"))
+        # Реликвия: Перо Ангела +15%
+        base += self.relic_bonuses.get("speed", 0.0)
+        return base
 
     @property
     def crit_chance(self) -> float:
@@ -151,6 +163,8 @@ class Player:
         base = self.get_passive_level("projectile")
         if self.char_bonus == "projectile_bonus":
             base += 1
+        # Реликвия: Фрагмент Креста +1
+        base += self.relic_bonuses.get("projectile", 0)
         return base
 
     @property
@@ -170,15 +184,27 @@ class Player:
         base = calc_regen(self.get_passive_level("regen"))
         if self.char_bonus == "base_regen":
             base += 1.0  # +1 HP/сек
+        # Реликвия: Чётки +0.5
+        base += self.relic_bonuses.get("regen", 0.0)
+        return base
+
+    @property
+    def gold_mult(self) -> float:
+        """Множитель золота. 1.0 = 100%."""
+        base = 1.0
+        # Реликвия: Золотая Чаша +30%
+        base += self.relic_bonuses.get("gold", 0.0)
         return base
 
     def update_stats(self):
-        """Пересчитать max_hp после изменения пассивек."""
+        """Пересчитать max_hp после изменения пассивек и реликвий."""
         self.max_hp = calc_max_hp(
             self.base_hp,
             self.get_passive_level("max_hp"),
             0
         )
+        # Реликвия: Священный Щит +50 макс HP
+        self.max_hp += self.relic_bonuses.get("max_hp", 0)
         self.speed = self.base_speed * self.speed_mult
 
     def handle_input(self, dt: float):
@@ -230,6 +256,36 @@ class Player:
 
     def heal(self, amount: float):
         self.hp = min(self.max_hp, self.hp + amount)
+
+    def apply_relic(self, relic_id: str, bonuses: dict):
+        """Применить бонусы реликвии к игроку."""
+        if relic_id in self.relics:
+            return  # уже есть
+        self.relics.append(relic_id)
+
+        # Применяем каждый бонус
+        if "max_hp" in bonuses:
+            old_max = self.max_hp
+            self.relic_bonuses["max_hp"] += bonuses["max_hp"]
+            self.update_stats()
+            # Хилим на то же количество, что и прибавка к макс HP
+            hp_gain = self.max_hp - old_max
+            self.hp = min(self.max_hp, self.hp + hp_gain)
+        if "damage" in bonuses:
+            self.relic_bonuses["damage"] += bonuses["damage"]
+        if "projectile" in bonuses:
+            self.relic_bonuses["projectile"] += bonuses["projectile"]
+        if "regen" in bonuses:
+            self.relic_bonuses["regen"] += bonuses["regen"]
+        if "gold" in bonuses:
+            self.relic_bonuses["gold"] += bonuses["gold"]
+        if "speed" in bonuses:
+            self.relic_bonuses["speed"] += bonuses["speed"]
+            self.update_stats()
+        if "area" in bonuses:
+            self.relic_bonuses["area"] += bonuses["area"]
+        if "cooldown" in bonuses:
+            self.relic_bonuses["cooldown"] += bonuses["cooldown"]
 
     def add_xp(self, amount: int):
         self.xp += amount

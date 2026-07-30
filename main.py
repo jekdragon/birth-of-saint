@@ -19,6 +19,8 @@ from enemies import ENEMY_TYPES
 from obstacles import generate_obstacles
 from lobby import MetaProgress, LobbyScreen
 from save_system import save_progress, load_progress
+from arcana import Arcana
+from relics import RelicManager, RELIC_DEFS
 
 # Глобальные объекты
 screen = None
@@ -81,6 +83,9 @@ class Game:
         self.obstacles = []
         self.elapsed = 0.0
         self._reaper_spawned = False
+        self.relic_mgr = RelicManager()
+        self.relics = []
+        self.arcana_data = {}
 
     def start_game(self, char_id: str):
         """Начинает новую игру."""
@@ -96,7 +101,9 @@ class Game:
         self.particles = []
         self.pulses = []
         self.elapsed = 0.0
-
+        self._reaper_spawned = False
+        self.relic_mgr.reset()
+        self.relics = []
         # Стартовое оружие
         start_weapon_id = CHARACTERS[char_id]["start_weapon"]
         self.player.weapons.append(create_weapon(start_weapon_id))
@@ -106,6 +113,13 @@ class Game:
         self.player.speed = self.player.base_speed
         self.player.max_hp = int(self.player.max_hp * self.meta.get_powerup_bonus("sturdiness"))
         self.player.hp = self.player.max_hp
+
+        # Применить аркану (если выбрана)
+        self.arcana_data = {}
+        if self.meta.selected_arcana:
+            arcana = Arcana.create(self.meta.selected_arcana)
+            if arcana:
+                arcana.apply(self, self.meta)
 
         # Препятствия (карта)
         self.current_map = self.menu.selected_map
@@ -289,6 +303,22 @@ class Game:
                     sound_mgr.play("gem_pickup")
                 self.check_levelup()
 
+        # 6.5 Реликвии — спавн + обновление + подбор
+        new_relic = self.relic_mgr.update(dt, len([r for r in self.relics if r.alive]), self.player.pos)
+        if new_relic:
+            self.relics.append(new_relic)
+        for relic in self.relics:
+            if not relic.alive:
+                continue
+            relic.update(self.player.pos, dt)
+            if relic.collected:
+                relic_id = relic.relic_id
+                bonuses = RELIC_DEFS[relic_id]["bonuses"]
+                self.player.apply_relic(relic_id, bonuses)
+                if sound_mgr:
+                    sound_mgr.play("gem_pickup")
+        self.relics = [r for r in self.relics if r.alive]
+
         # 7. Убитые враги → гемы
         dead_enemies = [e for e in self.enemies if not e.alive]
         for e in dead_enemies:
@@ -296,7 +326,7 @@ class Game:
                 e._gem_dropped = True
                 self.gems.append(XPGem(e.pos.x, e.pos.y, e.xp))
                 self.player.kills += 1
-                self.player.gold += int(e.score // 10 * self.meta.get_powerup_bonus("greed"))
+                self.player.gold += int(e.score // 10 * self.meta.get_powerup_bonus("greed") * self.player.gold_mult)
 
         # Очистка + деспавн далёких врагов
         from config import DESPAWN_DISTANCE
@@ -428,6 +458,10 @@ class Game:
         # XP-гемы
         for g in self.gems:
             g.draw(screen, cam_x, cam_y)
+
+        # Реликвии
+        for r in self.relics:
+            r.draw(screen, cam_x, cam_y)
 
         # Враги
         for e in self.enemies:

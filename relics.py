@@ -182,14 +182,16 @@ class RelicManager:
         self.spawn_timer = 0.0   # таймер до следующего спавна
         self.total_spawned = 0
         self.first_spawn_delay = 30.0  # первая реликвия через 30 сек
+        self._spawned_first = False
 
     def reset(self):
         """Сброс при старте новой игры."""
         self.relics = []
-        self.spawn_timer = -self.first_spawn_delay  # первая через 30 сек
+        self.spawn_timer = 0.0
         self.total_spawned = 0
+        self._spawned_first = False
 
-    def spawn_relic(self, player_pos: pygame.Vector2) -> Relic | None:
+    def spawn_relic(self, player_pos: pygame.Vector2):
         """Спавнит случайную реликвию на карте."""
         # Выбираем случайную ID
         rid = random.choice(RELIC_IDS)

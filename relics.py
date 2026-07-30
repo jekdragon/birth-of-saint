@@ -209,19 +209,18 @@ class RelicManager:
         self.total_spawned += 1
         return relic
 
-    def update(self, dt: float, current_relic_count: int, player_pos: pygame.Vector2) -> Relic | None:
-        """
-        Обновляет таймер спавна реликвий.
-        Возвращает новую реликвию, если появилась, иначе None.
-        """
+    def update(self, dt: float, current_relic_count: int, player_pos: pygame.Vector2):
+        """Обновляет таймер спавна реликвий. Возвращает новую реликвию или None."""
         # Не спавним если уже макс
         if current_relic_count >= MAX_ACTIVE_RELICS:
             self.spawn_timer = min(self.spawn_timer + dt, RELIC_SPAWN_INTERVAL)
             return None
 
         self.spawn_timer += dt
-        if self.spawn_timer >= RELIC_SPAWN_INTERVAL:
-            self.spawn_timer = 0
+        threshold = self.first_spawn_delay if not self._spawned_first else RELIC_SPAWN_INTERVAL
+        if self.spawn_timer >= threshold:
+            self.spawn_timer = 0.0
+            self._spawned_first = True
             return self.spawn_relic(player_pos)
 
         return None

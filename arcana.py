@@ -91,9 +91,9 @@ class VowOfSilenceArcana(Arcana):
         super().__init__("vow_of_silence")
 
     def apply(self, game, meta):
-        # Отключаем регенерацию
-        game.arcana_data["no_heal"] = True
-        # Удваиваем урон игрока
+        # Отключаем регенерацию и лечение у игрока
+        game.player.arcana_no_heal = True
+        # Удваиваем урон игрока (используется в Player.damage_mult)
         game.player.arcana_damage_bonus = 2.0
 
 

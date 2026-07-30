@@ -233,8 +233,8 @@ class Player:
         self.pos.x = max(0, min(MAP_WIDTH, self.pos.x))
         self.pos.y = max(0, min(MAP_HEIGHT, self.pos.y))
 
-        # Регенерация
-        if self.regen > 0:
+        # Регенерация (блокируется арканой Обет молчания)
+        if self.regen > 0 and not self.arcana_no_heal:
             self.hp = min(self.max_hp, self.hp + self.regen * dt)
 
         # Неуязвимость
@@ -255,7 +255,8 @@ class Player:
             self.alive = False
 
     def heal(self, amount: float):
-        self.hp = min(self.max_hp, self.hp + amount)
+        if not self.arcana_no_heal:
+            self.hp = min(self.max_hp, self.hp + amount)
 
     def apply_relic(self, relic_id: str, bonuses: dict):
         """Применить бонусы реликвии к игроку."""

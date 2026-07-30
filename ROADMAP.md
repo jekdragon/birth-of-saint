@@ -155,7 +155,7 @@ Phase 1 → Phase 2 → Phase 2.5 (Testing) → Phase 2.6 (Dep Review) → Phase
 3. **Размер билда** → Mitigation: процедурные звуки, минимум ассетов
 
 ## 📍 Current State
-**Мы здесь:** Phase 2.6 Complete → Phase 3 (Расширение)
+**Мы здесь:** Phase 3 Complete → Phase 4 (Публикация)
 **Обновлено:** 2026-07-30
 
 ## 📅 Review Cadence

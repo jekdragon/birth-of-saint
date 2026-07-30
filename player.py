@@ -209,7 +209,7 @@ class Player:
         self.speed = self.base_speed * self.speed_mult
 
     def handle_input(self, dt: float):
-        """Движение по WASD / стрелкам."""
+        """Движение по WASD / стрелкам / тач."""
         keys = pygame.key.get_pressed()
         dx, dy = 0.0, 0.0
 
@@ -221,6 +221,32 @@ class Player:
             dx -= 1
         if keys[pygame.K_d] or keys[pygame.K_RIGHT]:
             dx += 1
+
+        # Тач-управление (виртуальный джойстик)
+        if not hasattr(Player, '_touch_active'):
+            Player._touch_active = False
+            Player._touch_start = None
+            Player._touch_dx = 0.0
+            Player._touch_dy = 0.0
+
+        for event in pygame.event.get([pygame.FINGERDOWN, pygame.FINGERUP, pygame.FINGERMOTION]):
+            if event.type == pygame.FINGERDOWN:
+                Player._touch_active = True
+                Player._touch_start = pygame.Vector2(event.x, event.y)
+            elif event.type == pygame.FINGERUP:
+                Player._touch_active = False
+                Player._touch_dx = 0.0
+                Player._touch_dy = 0.0
+            elif event.type == pygame.FINGERMOTION and Player._touch_active:
+                current = pygame.Vector2(event.x, event.y)
+                delta = current - Player._touch_start
+                if delta.length() > 0.02:  # мёртвая зона
+                    Player._touch_dx = delta.x * 5
+                    Player._touch_dy = delta.y * 5
+
+        if Player._touch_active:
+            dx += Player._touch_dx
+            dy += Player._touch_dy
 
         if dx != 0 or dy != 0:
             move = pygame.Vector2(dx, dy)

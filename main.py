@@ -17,6 +17,7 @@ from effects import ScreenShake, ScreenFlash, draw_grid
 from menu import MainMenu
 from enemies import ENEMY_TYPES
 from obstacles import generate_obstacles
+from lobby import MetaProgress, LobbyScreen
 
 # Глобальные объекты
 screen = None
@@ -53,8 +54,10 @@ def init_sounds():
 
 class Game:
     def __init__(self):
-        self.state = "menu"  # "menu", "playing", "levelup", "gameover"
+        self.state = "menu"  # "menu", "playing", "levelup", "gameover", "lobby"
         self.menu = MainMenu()
+        self.meta = MetaProgress()
+        self.lobby = LobbyScreen()
         self.player = None
         self.camera = Camera()
         self.wave_mgr = WaveManager()
@@ -87,6 +90,12 @@ class Game:
         start_weapon_id = CHARACTERS[char_id]["start_weapon"]
         self.player.weapons.append(create_weapon(start_weapon_id))
 
+        # Применить бонусы мета-прогресса
+        self.player.base_speed *= self.meta.get_powerup_bonus("swiftness")
+        self.player.speed = self.player.base_speed
+        self.player.max_hp = int(self.player.max_hp * self.meta.get_powerup_bonus("sturdiness"))
+        self.player.hp = self.player.max_hp
+
         # Препятствия
         self.obstacles = generate_obstacles(25)
         self._reaper_spawned = False
@@ -115,11 +124,22 @@ class Game:
                 if result == "restart":
                     self.start_game(self.menu.selected_char)
                 elif result == "menu":
-                    self.state = "menu"
+                    # Переход в лобби вместо меню
+                    self.lobby.activate(self.meta)
+                    self.state = "lobby"
+
+            elif self.state == "lobby":
+                result = self.lobby.handle_event(event)
+                if result == "play":
+                    self.start_game(self.menu.selected_char)
 
         return True
 
     def update(self, dt: float):
+        self._last_dt = dt
+        if self.state == "lobby":
+            self.lobby.update(dt)
+            return
         if self.state != "playing":
             return
 
@@ -257,7 +277,7 @@ class Game:
                 e._gem_dropped = True
                 self.gems.append(XPGem(e.pos.x, e.pos.y, e.xp))
                 self.player.kills += 1
-                self.player.gold += e.score // 10
+                self.player.gold += int(e.score // 10 * self.meta.get_powerup_bonus("greed"))
 
         # Очистка + деспавн далёких врагов
         from config import DESPAWN_DISTANCE
@@ -294,6 +314,24 @@ class Game:
                 "level": self.player.level,
                 "gold": self.player.gold,
             }
+
+            # Обновить мета-прогресс
+            self.meta.gold += self.player.gold
+            self.meta.total_runs += 1
+            self.meta.total_kills += self.player.kills
+            if self.wave_mgr.wave > self.meta.best_wave:
+                self.meta.best_wave = self.wave_mgr.wave
+            if int(self.elapsed) > self.meta.best_time:
+                self.meta.best_time = int(self.elapsed)
+
+            # Проверить достижения
+            boss_killed = any(not e.alive and e.is_boss for e in self.enemies)
+            self.meta.check_achievements(
+                self.elapsed, self.wave_mgr.wave,
+                self.player.kills, self.meta.gold,
+                boss_killed=boss_killed
+            )
+
             if sound_mgr:
                 sound_mgr.play("game_over")
 
@@ -329,6 +367,10 @@ class Game:
     def render(self):
         if self.state == "menu":
             self.menu.draw(screen, font, big_font, small_font)
+            return
+
+        if self.state == "lobby":
+            self.lobby.draw(screen, font, big_font, small_font)
             return
 
         cam_x = self.camera.cam_x + shake.offset_x

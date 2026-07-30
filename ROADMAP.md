@@ -71,7 +71,7 @@
 - [ ] pygbag билд: запускается в Chrome/Firefox без ошибок
 
 **Criteria:** Все 12 проверок пройдены, нет P1 багов
-**Status:** ⬜ Not started
+**Status:** ✅ Complete (44/44 tests passed, 1 bug fixed)
 **Dependencies:** Phase 2 complete
 
 ---
@@ -153,7 +153,7 @@ Phase 1 → Phase 2 → Phase 2.5 (Testing) → Phase 2.6 (Dep Review) → Phase
 3. **Размер билда** → Mitigation: процедурные звуки, минимум ассетов
 
 ## 📍 Current State
-**Мы здесь:** Phase 1 — код написан, smoke test в процессе
+**Мы здесь:** Phase 2.5 Complete → Phase 2.6 (Dep Review)
 **Обновлено:** 2026-07-30
 
 ## 📅 Review Cadence

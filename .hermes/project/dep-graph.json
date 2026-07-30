@@ -1,0 +1,54 @@
+{
+  "camera.py": [
+    "config.py"
+  ],
+  "effects.py": [
+    "config.py"
+  ],
+  "enemies.py": [
+    "config.py"
+  ],
+  "hud.py": [
+    "weapons.py",
+    "config.py"
+  ],
+  "main.py": [
+    "wave_manager.py",
+    "hud.py",
+    "projectiles.py",
+    "camera.py",
+    "sounds.py",
+    "xp_system.py",
+    "effects.py",
+    "enemies.py",
+    "weapons.py",
+    "player.py",
+    "menu.py",
+    "config.py"
+  ],
+  "menu.py": [
+    "player.py",
+    "config.py"
+  ],
+  "player.py": [
+    "config.py"
+  ],
+  "projectiles.py": [
+    "config.py"
+  ],
+  "sounds.py": [
+    "config.py"
+  ],
+  "wave_manager.py": [
+    "enemies.py",
+    "config.py"
+  ],
+  "weapons.py": [
+    "projectiles.py",
+    "config.py"
+  ],
+  "xp_system.py": [
+    "weapons.py",
+    "config.py"
+  ]
+}

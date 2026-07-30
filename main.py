@@ -21,6 +21,7 @@ from lobby import MetaProgress, LobbyScreen
 from save_system import save_progress, load_progress
 from arcana import Arcana
 from relics import RelicManager, RELIC_DEFS
+from leaderboard import add_score, get_entries
 
 # Глобальные объекты
 screen = None
@@ -395,6 +396,18 @@ class Game:
 
             # Сохранить прогресс
             save_progress(self.meta)
+
+            # Лидерборд
+            map_name = getattr(self, 'current_map', 'arena')
+            char_name = CHARACTERS.get(self.player.char_id, {}).get('name', self.player.char_id)
+            self.leaderboard_rank = add_score(
+                char_name, self.wave_mgr.wave,
+                self.player.kills, self.player.gold,
+                self.elapsed, map_name
+            )
+            self.leaderboard_entries = get_entries()
+            self.menu.leaderboard_rank = self.leaderboard_rank
+            self.menu.leaderboard_entries = self.leaderboard_entries
 
             if sound_mgr:
                 sound_mgr.play("game_over")

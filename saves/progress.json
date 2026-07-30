@@ -1,6 +1,6 @@
 {
   "gold": 0,
-  "total_runs": 6,
+  "total_runs": 14,
   "best_wave": 3,
   "best_time": 69,
   "total_kills": 0,
@@ -17,9 +17,9 @@
     "paladin"
   ],
   "unlocked_weapons": [
+    "whip",
     "rosary",
     "fire",
-    "whip",
     "halo"
   ],
   "achievements_done": [],

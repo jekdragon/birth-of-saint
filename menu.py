@@ -137,10 +137,10 @@ class MainMenu:
         surface.fill(DARK_BG)
 
         title = big_font.render("ПАЛ В БОЮ", True, RED)
-        surface.blit(title, (WIDTH // 2 - title.get_width() // 2, 150))
+        surface.blit(title, (WIDTH // 2 - title.get_width() // 2, 80))
 
         stats = self.final_stats
-        y = 280
+        y = 160
 
         for label, value in [
             ("Волна", stats.get("wave", 0)),
@@ -151,13 +151,34 @@ class MainMenu:
         ]:
             text = font.render(f"{label}: {value}", True, WHITE)
             surface.blit(text, (WIDTH // 2 - text.get_width() // 2, y))
+            y += 30
+
+        # Лидерборд
+        rank = getattr(self, 'leaderboard_rank', None)
+        if rank:
+            rank_text = font.render(f"🏆 Место в таблице: #{rank}", True, GOLD)
+            surface.blit(rank_text, (WIDTH // 2 - rank_text.get_width() // 2, y + 10))
             y += 35
 
+        # Топ-5
+        entries = getattr(self, 'leaderboard_entries', [])
+        if entries:
+            lb_title = small_font.render("─── ТАБЛИЦА РЕКОРДОВ ───", True, GOLD)
+            surface.blit(lb_title, (WIDTH // 2 - lb_title.get_width() // 2, y + 10))
+            y += 25
+            for i, e in enumerate(entries[:5]):
+                is_current = (i + 1 == rank) if rank else False
+                color = GOLD if is_current else WHITE
+                line = f"{i+1}. {e['character']} — Волна {e['wave']} | {e['kills']} убийств | {e['survived']}с"
+                text = small_font.render(line, True, color)
+                surface.blit(text, (WIDTH // 2 - text.get_width() // 2, y))
+                y += 20
+
         restart_text = font.render("[R] — Заново", True, WHITE)
-        surface.blit(restart_text, (WIDTH // 2 - restart_text.get_width() // 2, y + 40))
+        surface.blit(restart_text, (WIDTH // 2 - restart_text.get_width() // 2, HEIGHT - 80))
 
         menu_text = small_font.render("[ESC] — В меню", True, (150, 150, 150))
-        surface.blit(menu_text, (WIDTH // 2 - menu_text.get_width() // 2, y + 80))
+        surface.blit(menu_text, (WIDTH // 2 - menu_text.get_width() // 2, HEIGHT - 50))
 
     def draw_map_select(self, surface: pygame.Surface, font, small_font):
         surface.fill(DARK_BG)

@@ -1,1 +1,182 @@
-[]
+[
+  {
+    "character": "Воин",
+    "wave": 1,
+    "kills": 3,
+    "gold": 3,
+    "survived": 11.2,
+    "map": "arena",
+    "timestamp": 1785448099
+  },
+  {
+    "character": "Воин",
+    "wave": 1,
+    "kills": 2,
+    "gold": 2,
+    "survived": 11.2,
+    "map": "arena",
+    "timestamp": 1785448528
+  },
+  {
+    "character": "Воин",
+    "wave": 1,
+    "kills": 2,
+    "gold": 2,
+    "survived": 10.0,
+    "map": "arena",
+    "timestamp": 1785448216
+  },
+  {
+    "character": "Воин",
+    "wave": 1,
+    "kills": 2,
+    "gold": 2,
+    "survived": 8.4,
+    "map": "arena",
+    "timestamp": 1785448289
+  },
+  {
+    "character": "Воин",
+    "wave": 1,
+    "kills": 1,
+    "gold": 1,
+    "survived": 9.0,
+    "map": "arena",
+    "timestamp": 1785448455
+  },
+  {
+    "character": "Воин",
+    "wave": 1,
+    "kills": 1,
+    "gold": 1,
+    "survived": 8.8,
+    "map": "arena",
+    "timestamp": 1785447949
+  },
+  {
+    "character": "Воин",
+    "wave": 1,
+    "kills": 1,
+    "gold": 1,
+    "survived": 8.5,
+    "map": "arena",
+    "timestamp": 1785447947
+  },
+  {
+    "character": "Воин",
+    "wave": 1,
+    "kills": 0,
+    "gold": 0,
+    "survived": 9.8,
+    "map": "arena",
+    "timestamp": 1785448257
+  },
+  {
+    "character": "Воин",
+    "wave": 1,
+    "kills": 0,
+    "gold": 0,
+    "survived": 9.6,
+    "map": "arena",
+    "timestamp": 1785448244
+  },
+  {
+    "character": "Воин",
+    "wave": 1,
+    "kills": 0,
+    "gold": 0,
+    "survived": 0.2,
+    "map": "arena",
+    "timestamp": 1785447782
+  },
+  {
+    "character": "Воин",
+    "wave": 1,
+    "kills": 0,
+    "gold": 0,
+    "survived": 0.2,
+    "map": "arena",
+    "timestamp": 1785447782
+  },
+  {
+    "character": "Воин",
+    "wave": 1,
+    "kills": 0,
+    "gold": 0,
+    "survived": 0.2,
+    "map": "arena",
+    "timestamp": 1785447846
+  },
+  {
+    "character": "Воин",
+    "wave": 1,
+    "kills": 0,
+    "gold": 0,
+    "survived": 0.2,
+    "map": "arena",
+    "timestamp": 1785447846
+  },
+  {
+    "character": "Воин",
+    "wave": 1,
+    "kills": 0,
+    "gold": 0,
+    "survived": 0.2,
+    "map": "arena",
+    "timestamp": 1785447901
+  },
+  {
+    "character": "Воин",
+    "wave": 1,
+    "kills": 0,
+    "gold": 0,
+    "survived": 0.2,
+    "map": "arena",
+    "timestamp": 1785447901
+  },
+  {
+    "character": "Воин",
+    "wave": 1,
+    "kills": 0,
+    "gold": 0,
+    "survived": 0.2,
+    "map": "arena",
+    "timestamp": 1785447947
+  },
+  {
+    "character": "Воин",
+    "wave": 1,
+    "kills": 0,
+    "gold": 0,
+    "survived": 0.2,
+    "map": "arena",
+    "timestamp": 1785447947
+  },
+  {
+    "character": "Воин",
+    "wave": 1,
+    "kills": 0,
+    "gold": 0,
+    "survived": 0.2,
+    "map": "arena",
+    "timestamp": 1785447949
+  },
+  {
+    "character": "Воин",
+    "wave": 1,
+    "kills": 0,
+    "gold": 0,
+    "survived": 0.2,
+    "map": "arena",
+    "timestamp": 1785447949
+  },
+  {
+    "character": "Воин",
+    "wave": 1,
+    "kills": 0,
+    "gold": 0,
+    "survived": 0.2,
+    "map": "arena",
+    "timestamp": 1785447970
+  }
+]

@@ -244,7 +244,7 @@ class Game:
                 self.projectiles.append(Projectile(
                     shot["x"], shot["y"], shot["vx"], shot["vy"],
                     damage=shot["damage"], radius=6, lifetime=2.0,
-                    pierce=0, color=shot["color"],
+                    pierce=0, color=shot["color"], from_enemy=True,
                 ))
 
             # Коллизия враг → игрок
@@ -272,41 +272,56 @@ class Game:
                 continue
             p.update(dt)
 
-            # Коллизия снаряд → враг
-            for e in self.enemies:
-                if not e.alive or id(e) in p.hit_set:
-                    continue
-                dx = e.pos.x - p.pos.x
-                dy = e.pos.y - p.pos.y
-                if dx * dx + dy * dy < (p.radius + e.radius) ** 2:
-                    killed = e.take_damage(p.damage)
-                    p.hit_set.add(id(e))
+            # Коллизия снаряд → враг (только снаряды игрока)
+            if not p.from_enemy:
+                for e in self.enemies:
+                    if not e.alive or id(e) in p.hit_set:
+                        continue
+                    dx = e.pos.x - p.pos.x
+                    dy = e.pos.y - p.pos.y
+                    if dx * dx + dy * dy < (p.radius + e.radius) ** 2:
+                        killed = e.take_damage(p.damage)
+                        p.hit_set.add(id(e))
 
+                        self.damage_numbers.append(
+                            DamageNumber(e.pos.x, e.pos.y, p.damage, p.color))
+                        for _ in range(3):
+                            self.particles.append(Particle(e.pos.x, e.pos.y, p.color))
+
+                        if killed:
+                            e._on_killed_called = True
+                            self.on_enemy_killed(e)
+
+                        if p.pierce <= 0:
+                            p.alive = False
+                            # Explosive
+                            if p.explosive:
+                                for e2 in self.enemies:
+                                    if not e2.alive or e2 is e:
+                                        continue
+                                    dx2 = e2.pos.x - p.pos.x
+                                    dy2 = e2.pos.y - p.pos.y
+                                    if dx2 * dx2 + dy2 * dy2 < (p.explode_r + e2.radius) ** 2:
+                                        e2.take_damage(p.explode_dmg)
+                                        self.damage_numbers.append(
+                                            DamageNumber(e2.pos.x, e2.pos.y, p.explode_dmg, p.color))
+                            break
+                        else:
+                            p.pierce -= 1
+
+            # Коллизия вражеский снаряд → игрок
+            if p.from_enemy and p.alive:
+                dx = self.player.pos.x - p.pos.x
+                dy = self.player.pos.y - p.pos.y
+                if dx * dx + dy * dy < (p.radius + self.player.radius) ** 2:
+                    self.player.take_damage(p.damage)
+                    p.alive = False
+                    if sound_mgr:
+                        sound_mgr.play("player_hit")
+                    flash.trigger()
+                    shake.trigger(3, 0.08)
                     self.damage_numbers.append(
-                        DamageNumber(e.pos.x, e.pos.y, p.damage, p.color))
-                    for _ in range(3):
-                        self.particles.append(Particle(e.pos.x, e.pos.y, p.color))
-
-                    if killed:
-                        e._on_killed_called = True
-                        self.on_enemy_killed(e)
-
-                    if p.pierce <= 0:
-                        p.alive = False
-                        # Explosive
-                        if p.explosive:
-                            for e2 in self.enemies:
-                                if not e2.alive or e2 is e:
-                                    continue
-                                dx2 = e2.pos.x - p.pos.x
-                                dy2 = e2.pos.y - p.pos.y
-                                if dx2 * dx2 + dy2 * dy2 < (p.explode_r + e2.radius) ** 2:
-                                    e2.take_damage(p.explode_dmg)
-                                    self.damage_numbers.append(
-                                        DamageNumber(e2.pos.x, e2.pos.y, p.explode_dmg, p.color))
-                        break
-                    else:
-                        p.pierce -= 1
+                        DamageNumber(self.player.pos.x, self.player.pos.y, p.damage, p.color))
 
         # 6. XP-гемы
         for gem in self.gems:

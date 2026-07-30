@@ -17,7 +17,7 @@
 - [x] Player: WASD, HP, facing direction
 - [x] 6 оружий с апгрейдом (макс 8 уровней)
 - [x] 7 пассивек
-- [x] 6 типов врагов + босс (⚠️ demon стрельба не реализована — spec-долг)
+- [x] 6 типов врагов + босс
 - [x] XP-гемы → левелап → LevelUpScreen
 - [x] Коллизии: враг→игрок, оружие→враг
 - [x] HUD: HP, XP, таймер, оружие, пассивки
@@ -71,7 +71,7 @@
 - [ ] pygbag билд: запускается в Chrome/Firefox без ошибок
 
 **Criteria:** Все 14 проверок пройдены, нет P1 багов
-**Status:** ✅ Complete (48/48 tests passed, 4 bugs fixed: enemy_type→type_id, gold formula order, melee→on_enemy_killed, render smoke coverage)
+**Status:** ✅ Complete (50/50 tests passed, 6 bugs fixed: enemy_type→type_id, gold formula order, melee→on_enemy_killed, render smoke coverage, leaderboard rank overflow, demon ranged attack)
 **Dependencies:** Phase 2 complete
 
 ---

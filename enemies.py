@@ -171,10 +171,13 @@ class Enemy:
                         "damage": self.damage * 0.5,
                         "color": self.color,
                     }
-                    # Не двигаемся пока стреляем
                     if self.hit_flash > 0:
                         self.hit_flash -= dt
                     return shot
+                # В пределах дистанции — стоим и ждём кулдаун
+                if self.hit_flash > 0:
+                    self.hit_flash -= dt
+                return None
 
         # Движение к игроку
         d = player_pos - self.pos

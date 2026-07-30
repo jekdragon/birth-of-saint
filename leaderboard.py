@@ -69,9 +69,10 @@ def add_score(character: str, wave: int, kills: int, gold: int, survived: float,
     }
     entries.append(entry)
     entries.sort(key=lambda e: (e["wave"], e["kills"], e["survived"]), reverse=True)
+    rank = entries.index(entry) + 1
     entries = entries[:MAX_ENTRIES]
     _save_entries(entries)
-    return entries.index(entry) + 1
+    return rank if rank <= MAX_ENTRIES else -1
 
 
 def get_entries() -> list:

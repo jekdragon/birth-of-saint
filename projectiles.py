@@ -10,7 +10,8 @@ class Projectile:
     """Летящий снаряд."""
     def __init__(self, x, y, vx, vy, damage, radius=6, lifetime=2.0,
                  pierce=0, color=(185, 130, 255), homing=False,
-                 target=None, explosive=False, explode_dmg=0, explode_r=0):
+                 target=None, explosive=False, explode_dmg=0, explode_r=0,
+                 from_enemy=False):
         self.pos = pygame.Vector2(x, y)
         self.vel = pygame.Vector2(vx, vy)
         self.damage = damage
@@ -25,6 +26,7 @@ class Projectile:
         self.explode_r = explode_r
         self.hit_set = set()
         self.alive = True
+        self.from_enemy = from_enemy
 
     def update(self, dt: float):
         if self.homing and self.target and self.target.get("alive", True):
@@ -76,11 +78,12 @@ class Particle:
     def draw(self, surface: pygame.Surface, cam_x: float, cam_y: float):
         sx = int(self.pos.x - cam_x)
         sy = int(self.pos.y - cam_y)
-        alpha = int(255 * (self.lifetime / self.max_lifetime))
-        size = max(1, int(3 * (self.lifetime / self.max_lifetime)))
+        alpha = max(0, min(255, int(255 * (self.lifetime / max(0.001, self.max_lifetime)))))
+        size = max(1, int(3 * (self.lifetime / max(0.001, self.max_lifetime))))
+        r, g, b = int(self.color[0]), int(self.color[1]), int(self.color[2])
         if 0 <= sx < 1044 and 0 <= sy < 788:
             s = pygame.Surface((size * 2, size * 2), pygame.SRCALPHA)
-            pygame.draw.circle(s, (*self.color, alpha), (size, size), size)
+            pygame.draw.circle(s, (r, g, b, alpha), (size, size), size)
             surface.blit(s, (sx - size, sy - size))
 
 

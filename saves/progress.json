@@ -1,8 +1,8 @@
 {
-  "gold": 0,
-  "total_runs": 14,
-  "best_wave": 3,
-  "best_time": 69,
+  "gold": 999,
+  "total_runs": 0,
+  "best_wave": 7,
+  "best_time": 0,
   "total_kills": 0,
   "powerups": {
     "might": 0,
@@ -17,10 +17,10 @@
     "paladin"
   ],
   "unlocked_weapons": [
-    "whip",
-    "rosary",
     "fire",
-    "halo"
+    "halo",
+    "rosary",
+    "whip"
   ],
   "achievements_done": [],
   "selected_arcana": null

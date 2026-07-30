@@ -2,6 +2,7 @@
 Рождение святого — Procedural Music
 Амбиентная музыка через pygame.mixer.music с procedural генерацией WAV.
 """
+import sys
 import struct
 import math
 import random
@@ -83,6 +84,10 @@ class MusicManager:
     
     def init(self):
         """Генерирует и запускает музыку."""
+        # В браузере (pygbag) WAV не поддерживается — пропускаем
+        if sys.platform == "emscripten":
+            return
+        
         self.music_path = os.path.join(os.path.dirname(__file__), "assets", "sounds", "ambient.wav")
         if not os.path.exists(self.music_path):
             os.makedirs(os.path.dirname(self.music_path), exist_ok=True)

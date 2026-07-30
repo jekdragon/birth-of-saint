@@ -4,14 +4,30 @@
 """
 import json
 import os
+import sys
 import time
 
+IS_WEB = sys.platform == "emscripten"
 LEADERBOARD_FILE = os.path.join(os.path.dirname(__file__), "saves", "leaderboard.json")
 MAX_ENTRIES = 20
+
+_entries_cache = []
 
 
 def _load_entries() -> list:
     """Загрузить записи."""
+    global _entries_cache
+
+    if IS_WEB:
+        try:
+            import platform
+            raw = platform.window.localStorage.getItem("birth_of_saint_lb")
+            if raw:
+                _entries_cache = json.loads(raw)
+        except Exception:
+            pass
+        return list(_entries_cache)
+
     if not os.path.exists(LEADERBOARD_FILE):
         return []
     try:
@@ -23,6 +39,17 @@ def _load_entries() -> list:
 
 def _save_entries(entries: list):
     """Сохранить записи."""
+    global _entries_cache
+    _entries_cache = entries
+
+    if IS_WEB:
+        try:
+            import platform
+            platform.window.localStorage.setItem("birth_of_saint_lb", json.dumps(entries))
+        except Exception:
+            pass
+        return
+
     os.makedirs(os.path.dirname(LEADERBOARD_FILE), exist_ok=True)
     with open(LEADERBOARD_FILE, "w", encoding="utf-8") as f:
         json.dump(entries, f, ensure_ascii=False, indent=2)
@@ -41,24 +68,20 @@ def add_score(character: str, wave: int, kills: int, gold: int, survived: float,
         "timestamp": int(time.time()),
     }
     entries.append(entry)
-    # Сортировка: больше волн → больше убийств → дольше выжил
     entries.sort(key=lambda e: (e["wave"], e["kills"], e["survived"]), reverse=True)
     entries = entries[:MAX_ENTRIES]
     _save_entries(entries)
-    return entries.index(entry) + 1  # позиция в таблице
+    return entries.index(entry) + 1
 
 
 def get_entries() -> list:
-    """Получить все записи."""
     return _load_entries()
 
 
 def get_best() -> dict:
-    """Получить лучший результат."""
     entries = _load_entries()
     return entries[0] if entries else None
 
 
 def clear():
-    """Очистить таблицу."""
     _save_entries([])

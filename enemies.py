@@ -119,12 +119,15 @@ class Enemy:
         if sx < -50 or sx > 1074 or sy < -50 or sy > 818:
             return
 
-        # Цвет при ударе
-        color = WHITE if self.hit_flash > 0 else self.color
-
-        # Тело
-        pygame.draw.circle(surface, color, (sx, sy), self.radius)
-        pygame.draw.circle(surface, WHITE, (sx, sy), self.radius, 1)
+        # Спрайт
+        from sprites import get_enemy_sprite
+        sprite = get_enemy_sprite(self.enemy_type, scale=2)
+        if self.hit_flash > 0:
+            # Белая вспышка при ударе
+            sprite = sprite.copy()
+            sprite.fill((255, 255, 255), special_flags=pygame.BLEND_ADD)
+        sprite_rect = sprite.get_rect(center=(sx, sy))
+        surface.blit(sprite, sprite_rect)
 
         # HP-бар (для боссов и если урон получен)
         if self.is_boss or self.hp < self.max_hp:

@@ -188,11 +188,8 @@ class Player:
         if self.invuln_timer > 0 and int(self.invuln_timer * 10) % 2 == 0:
             return
 
-        # Тело (круг)
-        pygame.draw.circle(surface, self.color, (sx, sy), self.radius)
-        pygame.draw.circle(surface, WHITE, (sx, sy), self.radius, 2)
-
-        # Глаз (направление)
-        eye_x = sx + int(self.facing.x * 6)
-        eye_y = sy + int(self.facing.y * 6)
-        pygame.draw.circle(surface, WHITE, (eye_x, eye_y), 3)
+        # Спрайт
+        from sprites import get_player_sprite
+        sprite = get_player_sprite(self.char_id, scale=2)
+        sprite_rect = sprite.get_rect(center=(sx, sy))
+        surface.blit(sprite, sprite_rect)

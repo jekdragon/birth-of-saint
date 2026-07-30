@@ -13,18 +13,18 @@
     "config.py"
   ],
   "main.py": [
-    "wave_manager.py",
-    "hud.py",
-    "projectiles.py",
-    "camera.py",
-    "sounds.py",
-    "xp_system.py",
-    "effects.py",
     "enemies.py",
     "weapons.py",
-    "player.py",
+    "sounds.py",
+    "wave_manager.py",
     "menu.py",
-    "config.py"
+    "xp_system.py",
+    "config.py",
+    "hud.py",
+    "camera.py",
+    "effects.py",
+    "projectiles.py",
+    "player.py"
   ],
   "menu.py": [
     "player.py",

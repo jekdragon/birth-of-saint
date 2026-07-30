@@ -281,6 +281,9 @@ class Game:
                 continue
             xp = gem.update(self.player.pos, self.player.pickup_range, dt)
             if xp > 0:
+                # Бонус Пилигрима: +30% XP
+                if self.player.char_bonus == "xp_bonus":
+                    xp = int(xp * 1.3)
                 self.player.add_xp(xp)
                 if sound_mgr:
                     sound_mgr.play("gem_pickup")

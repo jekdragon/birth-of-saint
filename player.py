@@ -40,6 +40,24 @@ CHARACTERS = {
         "passive_bonus": "projectile_bonus",
         "color": (200, 180, 60),
     },
+    "pilgrim": {
+        "name": "Пилигрим",
+        "desc": "+30% XP от гемов",
+        "start_weapon": "rosary",
+        "hp": 90,
+        "speed": 3.2,
+        "passive_bonus": "xp_bonus",
+        "color": (100, 180, 120),
+    },
+    "monk": {
+        "name": "Монах",
+        "desc": "+1 HP/сек регенерация",
+        "start_weapon": "prayer",
+        "hp": 110,
+        "speed": 2.8,
+        "passive_bonus": "base_regen",
+        "color": (180, 160, 140),
+    },
 }
 
 
@@ -121,7 +139,10 @@ class Player:
 
     @property
     def regen(self) -> float:
-        return calc_regen(self.get_passive_level("regen"))
+        base = calc_regen(self.get_passive_level("regen"))
+        if self.char_bonus == "base_regen":
+            base += 1.0  # +1 HP/сек
+        return base
 
     def update_stats(self):
         """Пересчитать max_hp после изменения пассивек."""

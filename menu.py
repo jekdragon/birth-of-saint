@@ -45,6 +45,12 @@ class MainMenu:
                 elif event.key == pygame.K_3:
                     self.selected_char = "inquisitor"
                     self.state = "main"
+                elif event.key == pygame.K_4:
+                    self.selected_char = "pilgrim"
+                    self.state = "main"
+                elif event.key == pygame.K_5:
+                    self.selected_char = "monk"
+                    self.state = "main"
                 elif event.key == pygame.K_ESCAPE:
                     self.state = "main"
 

@@ -4,7 +4,7 @@
 """
 import math
 import pygame
-from config import WHITE, RED, DARK_RED, YELLOW, PURPLE, ICE_BLUE
+from config import WHITE, RED, DARK_RED, YELLOW, PURPLE, ICE_BLUE, GOLD
 
 ENEMY_TYPES = {
     "neophyte": {
@@ -56,6 +56,50 @@ ENEMY_TYPES = {
         "speed_base": 1.3, "speed_per_wave": 0,
         "damage": 1.5, "xp": 25, "score": 250,
         "radius": 38, "color": PURPLE, "blood_color": (220, 80, 220),
+        "is_boss": True,
+    },
+    # === Новые враги (Собор) ===
+    "ghost": {
+        "name": "Призрак",
+        "unlock_wave": 6,
+        "hp_base": 10, "hp_per_wave": 2,
+        "speed_base": 2.0, "speed_per_wave": 0.06,
+        "damage": 0.7, "xp": 8, "score": 20,
+        "radius": 14, "color": ICE_BLUE, "blood_color": (150, 200, 255),
+        "phasing": True,  # проходит сквозь препятствия
+    },
+    "gargoyle": {
+        "name": "Горгулья",
+        "unlock_wave": 7,
+        "hp_base": 55, "hp_per_wave": 10,
+        "speed_base": 0.9, "speed_per_wave": 0.03,
+        "damage": 2.0, "xp": 15, "score": 40,
+        "radius": 22, "color": (100, 100, 120), "blood_color": (80, 80, 100),
+    },
+    "shade": {
+        "name": "Тень",
+        "unlock_wave": 8,
+        "hp_base": 6, "hp_per_wave": 1,
+        "speed_base": 3.5, "speed_per_wave": 0.1,
+        "damage": 0.4, "xp": 5, "score": 14,
+        "radius": 10, "color": (60, 60, 80), "blood_color": (40, 40, 60),
+    },
+    "cultist": {
+        "name": "Культист",
+        "unlock_wave": 4,
+        "hp_base": 20, "hp_per_wave": 4,
+        "speed_base": 1.3, "speed_per_wave": 0.05,
+        "damage": 1.0, "xp": 7, "score": 22,
+        "radius": 18, "color": (100, 50, 100), "blood_color": (80, 30, 80),
+        "shoot_range": 250, "shoot_cd": 2.0,
+    },
+    "pope": {
+        "name": "Лжепапа",
+        "unlock_wave": 9,
+        "hp_base": 400, "hp_per_wave": 120,
+        "speed_base": 0.8, "speed_per_wave": 0,
+        "damage": 2.5, "xp": 50, "score": 500,
+        "radius": 42, "color": GOLD, "blood_color": (200, 180, 50),
         "is_boss": True,
     },
 }

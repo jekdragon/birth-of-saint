@@ -66,16 +66,24 @@ class WaveManager:
         r = random.random()
         type_id = "neophyte"
 
-        if self.wave >= 5 and r < 0.10:
+        if self.wave >= 9 and r < 0.05:
+            type_id = "pope"  # редкий босс
+        elif self.wave >= 8 and r < 0.12:
+            type_id = "shade"
+        elif self.wave >= 7 and r < 0.20:
+            type_id = "gargoyle"
+        elif self.wave >= 6 and r < 0.30:
+            type_id = "ghost"
+        elif self.wave >= 5 and r < 0.40:
             type_id = "fanatic"
-        elif self.wave >= 5 and r < 0.25:
+        elif self.wave >= 5 and r < 0.50:
             type_id = "demon"
-        elif self.wave >= 3 and r < 0.40:
+        elif self.wave >= 4 and r < 0.60:
+            type_id = "cultist"
+        elif self.wave >= 3 and r < 0.70:
             type_id = "acolyte"
-        elif self.wave >= 4 and r < 0.55:
+        elif self.wave >= 4 and r < 0.80:
             type_id = "heretic"
-        else:
-            type_id = "neophyte"
 
         return Enemy(type_id, x, y, wave)
 

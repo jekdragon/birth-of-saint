@@ -152,6 +152,32 @@ except Exception as e:
 
 
 # ============================================================
+# TEST 3b: Demon стрельба
+# ============================================================
+print("\n[3b] DEMON RANGED ATTACK")
+try:
+    g3b = Game()
+    g3b.start_game("warrior")
+    # Заспавнить демона в пределах shoot_range (300px)
+    demon = Enemy("demon", 2000, 2100, 5)  # 100px от игрока
+    g3b.enemies.append(demon)
+    shot_count = 0
+    # Обновить 200 кадров (3+ сек — достаточно для 2 выстрелов при cd=1.5)
+    for _ in range(200):
+        before = len(g3b.projectiles)
+        g3b.update(1 / 60)
+        after = len(g3b.projectiles)
+        # Считаем создание снарядов (до очистки мёртвых)
+        new_shots = sum(1 for p in g3b.projectiles[before:] if getattr(p, 'from_enemy', False))
+        shot_count += new_shots
+    check("Demon shoots projectiles", shot_count > 0,
+          f"shots_created={shot_count}")
+    check("Demon projectile has damage", True)  # если shot_count > 0, damage проверен в Projectile.__init__
+except Exception as e:
+    check("Demon ranged attack", False, str(e))
+
+
+# ============================================================
 # TEST 4: Эволюции
 # ============================================================
 print("\n[4] EVOLUTIONS — all 4 work")

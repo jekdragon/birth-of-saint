@@ -15,6 +15,23 @@ SAVE_FILE = os.path.join(SAVE_DIR, "progress.json")
 _data_cache = {}
 
 
+def _get_local_storage():
+    """Возвращает объект localStorage браузера или None.
+    В pygbag/emscripten доступ к localStorage через модуль js (рекомендованный
+    pygbag способ); устаревший путь через platform.window оставлен как fallback.
+    """
+    try:
+        from js import localStorage
+        return localStorage
+    except Exception:
+        pass
+    try:
+        import platform
+        return platform.window.localStorage
+    except Exception:
+        return None
+
+
 def save_progress(meta) -> bool:
     """Сохраняет MetaProgress."""
     global _data_cache
@@ -33,9 +50,11 @@ def save_progress(meta) -> bool:
     _data_cache = data
 
     if IS_WEB:
+        ls = _get_local_storage()
+        if ls is None:
+            return False
         try:
-            import platform
-            platform.window.localStorage.setItem("birth_of_saint", json.dumps(data))
+            ls.setItem("birth_of_saint", json.dumps(data))
             return True
         except Exception:
             return False
@@ -55,9 +74,14 @@ def load_progress(meta) -> bool:
     global _data_cache
 
     if IS_WEB:
+        ls = _get_local_storage()
+        raw = None
+        if ls is not None:
+            try:
+                raw = ls.getItem("birth_of_saint")
+            except Exception:
+                raw = None
         try:
-            import platform
-            raw = platform.window.localStorage.getItem("birth_of_saint")
             if raw:
                 data = json.loads(raw)
             elif _data_cache:

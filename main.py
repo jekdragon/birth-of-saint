@@ -4,6 +4,7 @@
 """
 import asyncio
 import sys
+import traceback
 import pygame
 from config import WIDTH, HEIGHT, FPS, TITLE, MAP_WIDTH, MAP_HEIGHT, calc_xp_for_level
 from player import Player, CHARACTERS
@@ -37,7 +38,14 @@ flash = ScreenFlash()
 def init_pygame():
     global screen, clock, font, small_font, big_font
     pygame.init()
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    # На emscripten (pygbag WASM) canvas уже создан шаблоном фиксированного
+    # размера (1280x720). pygame.SCALED позволяет SDL2 смасштабировать наш
+    # виртуальный framebuffer (WIDTH x HEIGHT) под реальный canvas — без этого
+    # флага на WASM часто получается пустой/серый экран.
+    if sys.platform == "emscripten":
+        screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED, vsync=0)
+    else:
+        screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption(TITLE)
     clock = pygame.time.Clock()
 
@@ -550,30 +558,79 @@ class Game:
         flash.draw(screen)
 
 
+def _render_error_screen(err_text: str):
+    """Рисует traceback прямо на canvas (диагностика WASM без консоли браузера)."""
+    global screen
+    if screen is None:
+        return
+    import traceback as _tb
+    screen.fill((20, 0, 0))
+    lines = ("FATAL ERROR\n\n" + err_text).splitlines()
+    err_font = pygame.font.Font(None, 20)
+    y = 20
+    for line in lines:
+        for chunk in (line[i:i + 90] for i in range(0, len(line), 90)):
+            try:
+                surf = err_font.render(chunk, True, (255, 80, 80))
+            except Exception:
+                surf = err_font.render(repr(chunk), True, (255, 80, 80))
+            screen.blit(surf, (20, y))
+            y += 22
+            if y > HEIGHT - 30:
+                return
+        y += 2
+
+
 async def main():
     """Главная async-функция (для pygbag)."""
-    init_pygame()
-    init_sounds()
+    try:
+        init_pygame()
+        init_sounds()
+    except Exception as e:
+        # На WASM выводим ошибку в консоль pygbag
+        print(f"INIT ERROR: {e}")
+        traceback.print_exc()
+        pygame.init()
+        screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        _render_error_screen(f"INIT ERROR:\n{traceback.format_exc()}")
+        pygame.display.flip()
+        while True:
+            pygame.event.pump()
+            await asyncio.sleep(0.1)
+        return
 
-    game = Game()
+    try:
+        game = Game()
+    except Exception:
+        _render_error_screen(traceback.format_exc())
+        pygame.display.flip()
+        while True:
+            pygame.event.pump()
+            await asyncio.sleep(0.1)
+        return
 
     running = True
     while running:
         dt = clock.tick(FPS) / 1000.0
-        dt = min(dt, 0.05)  # Ограничение dt
+        dt = min(dt, 0.05)
 
-        running = game.handle_events()
-        game.update(dt)
-        game.render()
+        try:
+            running = game.handle_events()
+            game.update(dt)
+            game.render()
+        except Exception:
+            _render_error_screen(traceback.format_exc())
+            pygame.display.flip()
+            while True:
+                pygame.event.pump()
+                await asyncio.sleep(0.1)
+            return
 
         pygame.display.flip()
-        await asyncio.sleep(0)  # Для pygbag
+        await asyncio.sleep(0)
 
     pygame.quit()
 
 
 if __name__ == "__main__":
-    if sys.platform == "emscripten":
-        asyncio.run(main())
-    else:
-        asyncio.run(main())
+    asyncio.run(main())

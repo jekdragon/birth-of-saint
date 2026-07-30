@@ -14,18 +14,33 @@ MAX_ENTRIES = 20
 _entries_cache = []
 
 
+def _get_local_storage():
+    """Возвращает объект localStorage браузера или None (см. save_system)."""
+    try:
+        from js import localStorage
+        return localStorage
+    except Exception:
+        pass
+    try:
+        import platform
+        return platform.window.localStorage
+    except Exception:
+        return None
+
+
 def _load_entries() -> list:
     """Загрузить записи."""
     global _entries_cache
 
     if IS_WEB:
-        try:
-            import platform
-            raw = platform.window.localStorage.getItem("birth_of_saint_lb")
-            if raw:
-                _entries_cache = json.loads(raw)
-        except Exception:
-            pass
+        ls = _get_local_storage()
+        if ls is not None:
+            try:
+                raw = ls.getItem("birth_of_saint_lb")
+                if raw:
+                    _entries_cache = json.loads(raw)
+            except Exception:
+                pass
         return list(_entries_cache)
 
     if not os.path.exists(LEADERBOARD_FILE):
@@ -43,11 +58,12 @@ def _save_entries(entries: list):
     _entries_cache = entries
 
     if IS_WEB:
-        try:
-            import platform
-            platform.window.localStorage.setItem("birth_of_saint_lb", json.dumps(entries))
-        except Exception:
-            pass
+        ls = _get_local_storage()
+        if ls is not None:
+            try:
+                ls.setItem("birth_of_saint_lb", json.dumps(entries))
+            except Exception:
+                pass
         return
 
     os.makedirs(os.path.dirname(LEADERBOARD_FILE), exist_ok=True)

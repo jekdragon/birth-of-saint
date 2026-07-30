@@ -11,7 +11,13 @@ from config import SAMPLE_RATE, SOUND_VOLUME
 
 class SoundManager:
     def __init__(self):
-        pygame.mixer.init(SAMPLE_RATE, -16, 1, 512)
+        try:
+            pygame.mixer.init(SAMPLE_RATE, -16, 1, 512)
+        except Exception:
+            try:
+                pygame.mixer.init()
+            except Exception:
+                pass
         self.sounds = {}
         self._generate_sounds()
 

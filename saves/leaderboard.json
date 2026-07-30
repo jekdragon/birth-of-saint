@@ -65,6 +65,15 @@
   {
     "character": "Воин",
     "wave": 1,
+    "kills": 1,
+    "gold": 1,
+    "survived": 7.8,
+    "map": "arena",
+    "timestamp": 1785451981
+  },
+  {
+    "character": "Воин",
+    "wave": 1,
     "kills": 0,
     "gold": 0,
     "survived": 9.8,
@@ -169,14 +178,5 @@
     "survived": 0.2,
     "map": "arena",
     "timestamp": 1785447949
-  },
-  {
-    "character": "Воин",
-    "wave": 1,
-    "kills": 0,
-    "gold": 0,
-    "survived": 0.2,
-    "map": "arena",
-    "timestamp": 1785447970
   }
 ]

@@ -1,9 +1,9 @@
 {
-  "gold": 782,
-  "total_runs": 14,
+  "gold": 784,
+  "total_runs": 18,
   "best_wave": 1,
   "best_time": 10,
-  "total_kills": 5,
+  "total_kills": 7,
   "powerups": {
     "might": 2,
     "sturdiness": 0,
@@ -13,14 +13,14 @@
     "revive": 0
   },
   "unlocked_chars": [
-    "paladin",
-    "warrior"
+    "warrior",
+    "paladin"
   ],
   "unlocked_weapons": [
-    "whip",
     "halo",
+    "rosary",
     "fire",
-    "rosary"
+    "whip"
   ],
   "achievements_done": []
 }

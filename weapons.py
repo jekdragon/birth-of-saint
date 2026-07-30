@@ -74,6 +74,10 @@ PASSIVE_DEFS = {
     "regen": {"name": "Молитва", "desc": "+0.3 HP/sec", "max_level": 5, "color": (255, 150, 150)},
     "max_hp": {"name": "Благословение", "desc": "+10 max HP", "max_level": 5, "color": (200, 100, 255)},
     "projectile": {"name": "Ревность", "desc": "+1 снаряд", "max_level": 3, "color": (255, 255, 100)},
+    # Новые пассивки
+    "magnet": {"name": "Притяжение", "desc": "+20% pickup range", "max_level": 5, "color": (255, 180, 220)},
+    "armor": {"name": "Броня веры", "desc": "-10% получаемый урон", "max_level": 5, "color": (180, 180, 200)},
+    "luck": {"name": "Провидение", "desc": "+15% шанс крита", "max_level": 5, "color": (255, 255, 180)},
 }
 
 EVOLUTIONS = {
@@ -92,6 +96,16 @@ class Weapon:
         self.level = 1
         self.timer = 0.0
         self.evolved = False
+
+    def calc_damage(self, player) -> tuple:
+        """Возвращает (damage, is_crit)."""
+        import random
+        d = self.defn
+        damage = (d["damage_base"] + self.level * d["damage_per_lvl"]) * player.damage_mult
+        is_crit = random.random() < player.crit_chance
+        if is_crit:
+            damage *= 2.0
+        return damage, is_crit
 
     @property
     def name(self) -> str:

@@ -124,6 +124,12 @@ class Player:
         return calc_speed_mult(self.get_passive_level("speed"))
 
     @property
+    def crit_chance(self) -> float:
+        """Шанс крита (0.0 - 1.0)."""
+        luck_lvl = self.get_passive_level("luck")
+        return 0.05 * luck_lvl  # 5% за уровень, макс 25%
+
+    @property
     def projectiles_bonus(self) -> int:
         base = self.get_passive_level("projectile")
         if self.char_bonus == "projectile_bonus":
@@ -132,10 +138,15 @@ class Player:
 
     @property
     def pickup_range(self) -> float:
-        return calc_pickup_range(
+        base = calc_pickup_range(
             PICKUP_RANGE_BASE,
             self.char_bonus == "pickup_range"
         )
+        # Пассивка Притяжение: +20% за уровень
+        magnet_lvl = self.get_passive_level("magnet")
+        if magnet_lvl > 0:
+            base *= 1.0 + 0.2 * magnet_lvl
+        return base
 
     @property
     def regen(self) -> float:
@@ -190,6 +201,11 @@ class Player:
     def take_damage(self, amount: float):
         if self.invuln_timer > 0 or not self.alive:
             return
+        # Пассивка Броня веры: -10% урон за уровень
+        armor_lvl = self.get_passive_level("armor")
+        if armor_lvl > 0:
+            amount *= 1.0 - 0.1 * armor_lvl
+            amount = max(0.1, amount)  # минимум 0.1 урона
         self.hp -= amount
         if self.hp <= 0:
             self.hp = 0

@@ -6,18 +6,19 @@
 import random
 import math
 import pygame
+import os
 from config import MAP_WIDTH, MAP_HEIGHT, BIOMES, CENTER_X, CENTER_Y, TILE_SIZE
 
 
 OBSTACLE_TYPES = {
-    "column":   {"radius": 20, "color": (60, 55, 80),  "biome": 0},  # Руины
-    "wall":     {"radius": 30, "color": (70, 65, 90),  "biome": 0},
-    "gravestone":{"radius": 18, "color": (50, 50, 50), "biome": 1},  # Кладбище
-    "cross":    {"radius": 15, "color": (60, 60, 60),  "biome": 1},
-    "tree":     {"radius": 25, "color": (40, 25, 25),  "biome": 2},  # Адский лес
-    "root":     {"radius": 12, "color": (50, 30, 30),  "biome": 2},
-    "bone":     {"radius": 14, "color": (180, 170, 140),"biome": 3},  # Пустошь
-    "skull":    {"radius": 16, "color": (160, 150, 130),"biome": 3},
+    "column":   {"radius": 30, "color": (60, 55, 80),  "biome": 0},  # Руины
+    "wall":     {"radius": 35, "color": (70, 65, 90),  "biome": 0},
+    "gravestone":{"radius": 25, "color": (50, 50, 50), "biome": 1},  # Кладбище
+    "cross":    {"radius": 22, "color": (60, 60, 60),  "biome": 1},
+    "tree":     {"radius": 35, "color": (40, 25, 25),  "biome": 2},  # Адский лес
+    "root":     {"radius": 18, "color": (50, 30, 30),  "biome": 2},
+    "bone":     {"radius": 20, "color": (180, 170, 140),"biome": 3},  # Пустошь
+    "skull":    {"radius": 24, "color": (160, 150, 130),"biome": 3},
 }
 
 
@@ -40,8 +41,33 @@ class Obstacle:
         sx = int(self.pos.x - cam_x)
         sy = int(self.pos.y - cam_y)
         if -50 < sx < 1074 and -50 < sy < 818:
-            pygame.draw.circle(surface, self.color, (sx, sy), self.radius)
-            pygame.draw.circle(surface, (255, 255, 255), (sx, sy), self.radius, 1)
+            sprite = OBSTACLE_SPRITES.get(self.type_id)
+            if sprite:
+                rect = sprite.get_rect(center=(sx, sy))
+                surface.blit(sprite, rect)
+            else:
+                pygame.draw.circle(surface, self.color, (sx, sy), self.radius)
+                pygame.draw.circle(surface, (255, 255, 255), (sx, sy), self.radius, 1)
+
+
+OBSTACLE_SPRITES = {}
+
+def preload_obstacle_sprites():
+    """Загрузить все спрайты препятствий при старте."""
+    assets_dir = os.path.join(os.getcwd(), "assets", "obstacles")
+    for tid in OBSTACLE_TYPES:
+        radius = OBSTACLE_TYPES[tid]["radius"]
+        size = radius * 2
+        path = os.path.join(assets_dir, f"{tid}_{size}.png")
+        if os.path.exists(path):
+            OBSTACLE_SPRITES[tid] = pygame.image.load(path).convert_alpha()
+        else:
+            # Fallback на ближайший размер
+            best_size = min([24, 28, 30, 32, 36, 40, 50, 60], key=lambda s: abs(s - size))
+            path = os.path.join(assets_dir, f"{tid}_{best_size}.png")
+            if os.path.exists(path):
+                sprite = pygame.image.load(path).convert_alpha()
+                OBSTACLE_SPRITES[tid] = pygame.transform.scale(sprite, (size, size))
 
 
 def generate_obstacles(count_per_biome: int = 30) -> list:

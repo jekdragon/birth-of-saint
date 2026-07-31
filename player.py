@@ -117,6 +117,8 @@ class Player:
 
         # Анимация
         self.anim_timer = 0.0
+        from sprites import SpriteAnimator, PLAYER_TO_TEMPLATE
+        self.animator = SpriteAnimator(PLAYER_TO_TEMPLATE.get(char_id, "knight"), scale=2)
 
     def get_passive_level(self, passive_id: str) -> int:
         return self.passives.get(passive_id, 0)
@@ -255,6 +257,17 @@ class Player:
             self.pos += move * self.speed * 60 * dt
             self.facing = move
 
+            # Walk animation — определяем направление
+            if abs(dx) > abs(dy):
+                self.animator.set_state("walk_right" if dx > 0 else "walk_left")
+            else:
+                self.animator.set_state("walk_down" if dy > 0 else "walk_up")
+        else:
+            self.animator.set_state("idle")
+
+        # Аниматор
+        self.animator.update(dt)
+
         # Ограничение карты из config
         from config import MAP_WIDTH, MAP_HEIGHT
         self.pos.x = max(0, min(MAP_WIDTH, self.pos.x))
@@ -326,8 +339,7 @@ class Player:
         if self.invuln_timer > 0 and int(self.invuln_timer * 10) % 2 == 0:
             return
 
-        # Спрайт
-        from sprites import get_player_sprite
-        sprite = get_player_sprite(self.char_id, scale=2)
+        # Спрайт — animator
+        sprite = self.animator.get_surface()
         sprite_rect = sprite.get_rect(center=(sx, sy))
         surface.blit(sprite, sprite_rect)

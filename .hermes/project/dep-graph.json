@@ -1,11 +1,18 @@
 {
+  "arcana.py": [
+    "weapons.py"
+  ],
   "camera.py": [
+    "config.py"
+  ],
+  "cathedral.py": [
     "config.py"
   ],
   "effects.py": [
     "config.py"
   ],
   "enemies.py": [
+    "sprites.py",
     "config.py"
   ],
   "hud.py": [
@@ -13,23 +20,31 @@
     "config.py"
   ],
   "lobby.py": [
-    "config.py"
+    "arcana.py",
+    "config.py",
+    "save_system.py"
   ],
   "main.py": [
-    "player.py",
-    "camera.py",
-    "sounds.py",
-    "weapons.py",
     "menu.py",
-    "effects.py",
-    "wave_manager.py",
+    "relics.py",
     "obstacles.py",
-    "xp_system.py",
-    "config.py",
-    "hud.py",
+    "enemies.py",
     "lobby.py",
-    "projectiles.py",
-    "enemies.py"
+    "player.py",
+    "hud.py",
+    "effects.py",
+    "config.py",
+    "leaderboard.py",
+    "camera.py",
+    "xp_system.py",
+    "save_system.py",
+    "weapons.py",
+    "music.py",
+    "sounds.py",
+    "cathedral.py",
+    "arcana.py",
+    "wave_manager.py",
+    "projectiles.py"
   ],
   "menu.py": [
     "player.py",
@@ -39,9 +54,13 @@
     "config.py"
   ],
   "player.py": [
+    "sprites.py",
     "config.py"
   ],
   "projectiles.py": [
+    "config.py"
+  ],
+  "relics.py": [
     "config.py"
   ],
   "sounds.py": [
@@ -60,18 +79,18 @@
     "config.py"
   ],
   "tests/test_phase25.py": [
-    "player.py",
     "camera.py",
-    "weapons.py",
-    "effects.py",
-    "wave_manager.py",
     "obstacles.py",
     "xp_system.py",
-    "config.py",
-    "hud.py",
-    "lobby.py",
-    "projectiles.py",
     "enemies.py",
-    "main.py"
+    "main.py",
+    "effects.py",
+    "lobby.py",
+    "player.py",
+    "hud.py",
+    "wave_manager.py",
+    "weapons.py",
+    "projectiles.py",
+    "config.py"
   ]
 }

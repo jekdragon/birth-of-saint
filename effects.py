@@ -89,3 +89,31 @@ def draw_grid(surface: pygame.Surface, cam_x: float, cam_y: float,
     for row in range(start_row, end_row + 1):
         y = int(row * TILE_SIZE - cam_y)
         pygame.draw.line(surface, grid_color, (0, y), (WIDTH, y))
+
+
+class LowHPVignette:
+    """Красная пульсирующая vignette при низком HP."""
+    def __init__(self):
+        self.active = False
+        self.intensity = 0.0
+
+    def update(self, hp_ratio: float, dt: float):
+        """hp_ratio = hp / max_hp (0.0 - 1.0)."""
+        if hp_ratio < 0.25:
+            self.active = True
+            # Пульсация
+            import math
+            t = pygame.time.get_ticks() / 1000.0
+            pulse = (math.sin(t * 4.0) + 1.0) * 0.5  # 0..1
+            self.intensity = (1.0 - hp_ratio / 0.25) * (0.3 + pulse * 0.2)
+        else:
+            self.active = False
+            self.intensity = 0.0
+
+    def draw(self, surface: pygame.Surface):
+        if not self.active or self.intensity <= 0:
+            return
+        alpha = int(80 * self.intensity)
+        overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        overlay.fill((200, 0, 0, alpha))
+        surface.blit(overlay, (0, 0))

@@ -5,7 +5,7 @@
 import math
 import pygame
 from config import calc_damage_mult, calc_cooldown_mult, calc_area_mult
-from projectiles import Projectile, Pulse
+from projectiles import Projectile, Pulse, make_damage_number, floating_numbers
 
 WEAPON_DEFS = {
     "whip": {
@@ -147,7 +147,7 @@ class Weapon:
         if self.level < 8:
             self.level += 1
 
-    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers, dt):
+    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers_unused, dt):
         """Переопределяется в подклассах."""
         pass
 
@@ -162,13 +162,17 @@ class Weapon:
     def evolve(self):
         self.evolved = True
 
+    def draw(self, surface, cam_x, cam_y, player):
+        """Отрисовка оружия. Переопределяется в подклассах."""
+        pass
+
 
 class WhipWeapon(Weapon):
     def __init__(self):
         super().__init__("whip")
         self.hit_set = set()
 
-    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers, dt):
+    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers_unused, dt):
         self.timer += dt
         d = self.defn
         cd = max(d["cd_min"], d["cooldown_base"] - self.level * d["cd_reduction"]) * player.cooldown_mult
@@ -183,6 +187,11 @@ class WhipWeapon(Weapon):
 
             f = player.facing if player.facing.length() > 0 else pygame.Vector2(1, 0)
             side = pygame.Vector2(1, 0) if f.x >= 0 else pygame.Vector2(-1, 0)
+
+            # Визуал: удар кнутом
+            from projectiles import WhipSweep
+            direction = 1 if side.x >= 0 else -1
+            pulses.append(WhipSweep(player.pos.x, player.pos.y, direction, d["color"], length))
 
             self.hit_set.clear()
             for e in enemies:
@@ -201,7 +210,7 @@ class WhipWeapon(Weapon):
                         diff = 2 * math.pi - diff
                     if diff < math.pi / 2:
                         killed = e.take_damage(damage)
-                        damage_numbers.append(DamageNumber(e.pos.x, e.pos.y, damage, d["color"]))
+                        floating_numbers.spawn_damage(e.pos.x, e.pos.y, damage, d["color"], player)
                         for _ in range(4):
                             particles.append(Particle(e.pos.x, e.pos.y, d["color"]))
                         if killed and self.evolved:
@@ -212,7 +221,7 @@ class FireWeapon(Weapon):
     def __init__(self):
         super().__init__("fire")
 
-    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers, dt):
+    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers_unused, dt):
         self.timer += dt
         d = self.defn
         cd = max(d["cd_min"], d["cooldown_base"] - self.level * d["cd_reduction"]) * player.cooldown_mult
@@ -254,7 +263,7 @@ class HaloWeapon(Weapon):
         self.angle = 0.0
         self.hit_cds = {}  # enemy_id -> timer
 
-    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers, dt):
+    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers_unused, dt):
         d = self.defn
         n = d["orbit_base"] + (self.level - 1) // 2 + player.projectiles_bonus
         radius = (d["radius_base"] + self.level * d["radius_per_lvl"]) * player.area_mult
@@ -302,13 +311,40 @@ class HaloWeapon(Weapon):
                             # Burn
                             pass
 
+    def draw(self, surface, cam_x, cam_y, player):
+        """Отрисовка орбитальных орб."""
+        d = self.defn
+        n = d["orbit_base"] + (self.level - 1) // 2 + player.projectiles_bonus
+        radius = (d["radius_base"] + self.level * d["radius_per_lvl"]) * player.area_mult
+        color = d["color"]
+
+        if self.evolved:
+            n += 2
+
+        for i in range(n):
+            ang = self.angle + (6.2832 / n) * i
+            ox = player.pos.x + math.cos(ang) * radius
+            oy = player.pos.y + math.sin(ang) * radius
+            sx = int(ox - cam_x)
+            sy = int(oy - cam_y)
+
+            # Glow
+            glow = pygame.Surface((28, 28), pygame.SRCALPHA)
+            r, g, b = color
+            pygame.draw.circle(glow, (r, g, b, 60), (14, 14), 14)
+            surface.blit(glow, (sx - 14, sy - 14))
+
+            # Core
+            pygame.draw.circle(surface, color, (sx, sy), 6)
+            pygame.draw.circle(surface, (255, 255, 255), (sx, sy), 3)
+
 
 class RosaryWeapon(Weapon):
     def __init__(self):
         super().__init__("rosary")
         self.boomerangs = []
 
-    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers, dt):
+    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers_unused, dt):
         d = self.defn
         speed = d["speed_base"] + self.level * d["speed_per_lvl"]
         max_range = d["range_base"] + self.level * d["range_per_lvl"]
@@ -364,12 +400,33 @@ class RosaryWeapon(Weapon):
                     "alive": True,
                 })
 
+    def draw(self, surface, cam_x, cam_y, player):
+        """Отрисовка бумерангов."""
+        color = self.defn["color"]
+        for b in self.boomerangs:
+            sx = int(b["pos"].x - cam_x)
+            sy = int(b["pos"].y - cam_y)
+
+            # Trail (предыдущие позиции - визуально)
+            glow = pygame.Surface((20, 20), pygame.SRCALPHA)
+            r, g, b_c = color
+            pygame.draw.circle(glow, (r, g, b_c, 40), (10, 10), 10)
+            surface.blit(glow, (sx - 10, sy - 10))
+
+            # Бумеранг (ромб)
+            pygame.draw.polygon(surface, color, [
+                (sx, sy - 8), (sx + 6, sy), (sx, sy + 8), (sx - 6, sy)
+            ])
+            pygame.draw.polygon(surface, (255, 255, 255), [
+                (sx, sy - 4), (sx + 3, sy), (sx, sy + 4), (sx - 3, sy)
+            ])
+
 
 class LightningWeapon(Weapon):
     def __init__(self):
         super().__init__("lightning")
 
-    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers, dt):
+    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers_unused, dt):
         self.timer += dt
         d = self.defn
         cd = max(d["cd_min"], d["cooldown_base"] - self.level * d["cd_reduction"]) * player.cooldown_mult
@@ -392,17 +449,18 @@ class LightningWeapon(Weapon):
                 dy = e.pos.y - target.pos.y
                 if dx * dx + dy * dy < (aoe + e.radius) ** 2:
                     e.take_damage(damage)
-                    damage_numbers.append(DamageNumber(e.pos.x, e.pos.y, damage, d["color"]))
+                    floating_numbers.spawn_damage(e.pos.x, e.pos.y, damage, d["color"], player)
 
-            # Визуал: пульс
-            pulses.append(Pulse(target.pos.x, target.pos.y, aoe, d["color"]))
+            # Визуал: молния
+            from projectiles import LightningBolt
+            pulses.append(LightningBolt(target.pos.x, target.pos.y, aoe, d["color"]))
 
 
 class PrayerWeapon(Weapon):
     def __init__(self):
         super().__init__("prayer")
 
-    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers, dt):
+    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers_unused, dt):
         self.timer += dt
         d = self.defn
         cd = max(d["cd_min"], d["cooldown_base"] - self.level * d["cd_reduction"]) * player.cooldown_mult
@@ -420,7 +478,8 @@ class PrayerWeapon(Weapon):
                     e.take_damage(damage)
                     damage_numbers.append(DamageNumber(e.pos.x, e.pos.y, damage, d["color"]))
 
-            pulses.append(Pulse(player.pos.x, player.pos.y, radius, d["color"], duration=0.3))
+            from projectiles import RingWave
+            pulses.append(RingWave(player.pos.x, player.pos.y, radius, d["color"], duration=0.3))
 
 
 class IncenseWeapon(Weapon):
@@ -429,7 +488,7 @@ class IncenseWeapon(Weapon):
         super().__init__("incense")
         self.angle = 0.0
 
-    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers, dt):
+    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers_unused, dt):
         d = self.defn
         count = int(d["count_base"] + self.level * d["count_per_lvl"])
         radius = (d["radius_base"] + self.level * d["radius_per_lvl"]) * player.area_mult
@@ -455,13 +514,41 @@ class IncenseWeapon(Weapon):
                     if int(self.angle * 10) % 5 == 0:
                         damage_numbers.append(DamageNumber(e.pos.x, e.pos.y, damage, d["color"]))
 
+    def draw(self, surface, cam_x, cam_y, player):
+        """Отрисовка кадил."""
+        d = self.defn
+        count = int(d["count_base"] + self.level * d["count_per_lvl"])
+        radius = (d["radius_base"] + self.level * d["radius_per_lvl"]) * player.area_mult
+        color = d["color"]
+
+        if self.evolved:
+            radius *= 2.0
+
+        for i in range(count):
+            a = self.angle + (2 * 3.14159 / count) * i
+            ox = player.pos.x + math.cos(a) * radius
+            oy = player.pos.y + math.sin(a) * radius
+            sx = int(ox - cam_x)
+            sy = int(oy - cam_y)
+
+            # Glow
+            glow = pygame.Surface((24, 24), pygame.SRCALPHA)
+            r, g, b = color
+            pygame.draw.circle(glow, (r, g, b, 50), (12, 12), 12)
+            surface.blit(glow, (sx - 12, sy - 12))
+
+            # Кадило (круг с крестом)
+            pygame.draw.circle(surface, color, (sx, sy), 5)
+            pygame.draw.line(surface, (255, 255, 255), (sx - 3, sy), (sx + 3, sy), 1)
+            pygame.draw.line(surface, (255, 255, 255), (sx, sy - 3), (sx, sy + 3), 1)
+
 
 class CrossWeapon(Weapon):
     """Крест - стреляет крестами в направлении движения."""
     def __init__(self):
         super().__init__("cross")
 
-    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers, dt):
+    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers_unused, dt):
         self.timer += dt
         d = self.defn
         cd = max(d["cd_min"], d["cooldown_base"] - self.level * d["cd_reduction"]) * player.cooldown_mult
@@ -488,7 +575,7 @@ class BellWeapon(Weapon):
     def __init__(self):
         super().__init__("bell")
 
-    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers, dt):
+    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers_unused, dt):
         self.timer += dt
         d = self.defn
         cd = max(d["cd_min"], d["cooldown_base"] - self.level * d["cd_reduction"]) * player.cooldown_mult
@@ -511,7 +598,8 @@ class BellWeapon(Weapon):
                         e.stun_timer = 1.0
                     damage_numbers.append(DamageNumber(e.pos.x, e.pos.y, damage, d["color"]))
 
-            pulses.append(Pulse(player.pos.x, player.pos.y, radius, d["color"], duration=0.5))
+            from projectiles import RingWave
+            pulses.append(RingWave(player.pos.x, player.pos.y, radius, d["color"], duration=0.5))
 
 
 WEAPON_CLASSES = {

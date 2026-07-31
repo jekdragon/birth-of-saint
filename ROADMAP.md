@@ -121,7 +121,99 @@
 
 ---
 
-## 🔮 Later — Phase 4: Публикация
+## 🔮 Later — Phase 3.5: VFX Integration
+
+**Goal:** Все оружие видимое, эффекты попаданий, death анимации, juice
+
+### Review Reference
+Полный план: `PLAN-VFX-INTEGRATION.md` (236 строк, 6 фаз, 15 проблем)
+Ассеты готовы: sprite-gen v2.1 (9 VFX типов, 224 char фрейма)
+
+### Steps
+
+#### Step 3.5.0: Asset Pipeline
+- [ ] Скопировать sprites/generated/vfx/ → E:/birth-of-saint/assets/vfx/
+- [ ] Скопировать sprites/generated/ → E:/birth-of-saint/assets/sprites/
+- [ ] Добавить load_vfx_frames() в sprites.py (кэширование)
+- [ ] Добавить get_attack_frames() / get_death_frames() в sprites.py
+- [ ] Smoke test: ассеты загружаются без ошибок
+
+#### Step 3.5.1: Invisible Weapons (P0)
+- [ ] HaloWeapon.draw() — орбы по орбите с glow
+- [ ] RosaryWeapon.draw() — бумеранги с trail
+- [ ] IncenseWeapon.draw() — кадила с glow
+- [ ] main.py render() — вызов weapon.draw() для всех типов
+- [ ] Smoke test: все 9 оружий видны на экране
+
+#### Step 3.5.2: Weapon Attack Visuals (P0)
+- [ ] WhipWeapon — whip_sweep VFX при ударе (4 кадра)
+- [ ] LightningWeapon — lightning VFX вместо Pulse
+- [ ] PrayerWeapon — ring_wave VFX вместо Pulse
+- [ ] BellWeapon — ring_wave VFX (другой цвет)
+- [ ] Screen shake для weapon attacks (whip=2, lightning=5, bell=6)
+- [ ] Smoke test: каждое оружие имеет уникальный визуал
+
+#### Step 3.5.3: Hit & Death Effects (P1)
+- [ ] Death particles — 6-8 частиц с blood_color при смерти врага
+- [ ] Explosive visual — explosion VFX при detonation FireWeapon
+- [ ] Crit visual — crit_flash overlay + жёлтый DamageNumber
+- [ ] Enemy death fade — 4-кадровый fade out (вместо мгновенного исчезновения)
+- [ ] Smoke test: враги умирают с эффектами, криты видны
+
+#### Step 3.5.4: Polish & Juice (P2)
+- [ ] Stun visual — звёздочки над головой при stun_timer > 0
+- [ ] Projectile trails — trail VFX на снарядах
+- [ ] Low HP warning — красный vignette при hp < 25%
+- [ ] Player walk animation — DirectionalAnimationController
+- [ ] Combo counter — "x3!" при серии убийств
+- [ ] Level up burst — evolution_glow при левелапе
+- [ ] Smoke test: все эффекты работают, FPS ≥ 55
+
+#### Step 3.5.5: Final Verification
+- [ ] Smoke test: 15 минут без краша с новыми эффектами
+- [ ] Stress test: 300 врагов + все оружие + VFX → FPS ≥ 30
+- [ ] All 9 weapons visible and distinct
+- [ ] All 15 review problems resolved
+- [ ] pygbag rebuild + browser test
+
+**Criteria:** Все 15 проблем из ревью закрыты, FPS стабильный
+**Status:** ⬜ Not started
+**Dependencies:** Phase 3 complete, sprite-gen v2.1 ready
+**Files:** sprites.py, weapons.py, projectiles.py, main.py, enemies.py, effects.py, hud.py, player.py
+
+---
+
+## 🔮 Later — Phase 4: UI Overhaul
+
+**Goal:** HUD уровня HoloCure/Brotato — dual-bar health, floating damage, animated bars, toasts
+
+### Review Reference
+Полный план: `PLAN-UI-OVERHAUL.md` (17 шагов, 53 задачи, 6 фаз)
+Ресерч: `research-ui-survivors.md`, `research-ui-pixel-art.md`, `research-ui-techniques.md`
+
+### Milestones
+- [ ] Dual-bar health (Dark Souls style — trailing damage bar)
+- [ ] Full-width XP bar сверху экрана с glow
+- [ ] Floating damage numbers с easing + alpha fade
+- [ ] Weapon slots (6) с rarity border + cooldown overlay
+- [ ] Passive slots (6) с level badge
+- [ ] Toast notification system (slide-from-right, 3 types)
+- [ ] LevelUpScreen: rarity border, описание, hover effect
+- [ ] Screen transitions (fade 0.3с)
+- [ ] Player outline toggle (клавиша O)
+- [ ] Rarity color ladder: Common→Uncommon→Rare→Epic→Legendary
+- [ ] Pixel font integration (Press Start 2P + VT323)
+- [ ] Hit feedback: hitstop, sprite flash, enhanced shake
+- [ ] Color coding: тёплые = игрок, холодные = враги
+
+**Criteria:** Все 17 шагов из PLAN-UI-OVERHAUL.md закрыты, FPS ≥ 55
+**Status:** ⬜ Not started
+**Dependencies:** Phase 3.5 complete (VFX Integration)
+**Files:** hud.py, main.py, projectiles.py, enemies.py, config.py, player.py, weapons.py
+
+---
+
+## 🔮 Later — Phase 5: Публикация
 
 **Goal:** Доступность и рост аудитории
 
@@ -139,7 +231,7 @@
 ---
 
 ## 🔗 Dependency Map
-Phase 1 → Phase 2 → Phase 2.5 (Testing) → Phase 2.6 (Dep Review) → Phase 3 → Phase 4 (sequential)
+Phase 1 → Phase 2 → Phase 2.5 (Testing) → Phase 2.6 (Dep Review) → Phase 3 → Phase 3.5 (VFX) → Phase 4 (UI) → Phase 5 (Публикация)
 
 ## 📈 KPIs
 | Metric | Baseline | Target | Measurement |
@@ -155,8 +247,8 @@ Phase 1 → Phase 2 → Phase 2.5 (Testing) → Phase 2.6 (Dep Review) → Phase
 3. **Размер билда** → Mitigation: процедурные звуки, минимум ассетов
 
 ## 📍 Current State
-**Мы здесь:** Phase 3 Complete → Phase 4 (Публикация)
-**Обновлено:** 2026-07-30
+**Мы здесь:** Phase 3.5 Complete → Phase 4 (UI Overhaul)
+**Обновлено:** 2026-07-31
 
 ## 📅 Review Cadence
 - **Per milestone:** проверка работоспособности

@@ -172,10 +172,28 @@ class LevelUpScreen:
             x = start_x + i * (LEVELUP_CARD_WIDTH + LEVELUP_CARD_GAP)
             y = start_y
 
+            # Hover highlight
+            is_hovered = (i == self.selected)
+
             # Фон карточки
             card_rect = pygame.Rect(x, y, LEVELUP_CARD_WIDTH, LEVELUP_CARD_HEIGHT)
-            pygame.draw.rect(surface, (40, 30, 60), card_rect, border_radius=8)
-            pygame.draw.rect(surface, GOLD, card_rect, 2, border_radius=8)
+            bg_color = (55, 40, 80) if is_hovered else (40, 30, 60)
+            pygame.draw.rect(surface, bg_color, card_rect, border_radius=8)
+
+            # Rarity border
+            if opt["type"] == "weapon":
+                rarity = WEAPON_DEFS[opt["id"]].get("rarity", "common")
+            elif opt["type"] == "passive":
+                rarity = "uncommon"
+            else:
+                rarity = "common"
+            rarity_colors = {
+                'common': (120, 120, 120), 'uncommon': (80, 200, 80),
+                'rare': (80, 120, 255), 'epic': (180, 80, 255), 'legendary': (255, 180, 50)
+            }
+            border_color = rarity_colors.get(rarity, GOLD)
+            border_width = 3 if is_hovered else 2
+            pygame.draw.rect(surface, border_color, card_rect, border_width, border_radius=8)
 
             # Номер
             num_text = font.render(str(i + 1), True, GOLD)

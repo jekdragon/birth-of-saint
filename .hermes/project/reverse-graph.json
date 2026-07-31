@@ -1,6 +1,14 @@
 {
+  "weapons.py": [
+    "arcana.py",
+    "hud.py",
+    "main.py",
+    "xp_system.py",
+    "tests/test_phase25.py"
+  ],
   "config.py": [
     "camera.py",
+    "cathedral.py",
     "effects.py",
     "enemies.py",
     "hud.py",
@@ -10,16 +18,42 @@
     "obstacles.py",
     "player.py",
     "projectiles.py",
+    "relics.py",
     "sounds.py",
     "wave_manager.py",
     "weapons.py",
     "xp_system.py",
     "tests/test_phase25.py"
   ],
-  "weapons.py": [
-    "hud.py",
+  "sprites.py": [
+    "enemies.py",
+    "player.py"
+  ],
+  "arcana.py": [
+    "lobby.py",
+    "main.py"
+  ],
+  "save_system.py": [
+    "lobby.py",
+    "main.py"
+  ],
+  "menu.py": [
+    "main.py"
+  ],
+  "relics.py": [
+    "main.py"
+  ],
+  "obstacles.py": [
     "main.py",
-    "xp_system.py",
+    "tests/test_phase25.py"
+  ],
+  "enemies.py": [
+    "main.py",
+    "wave_manager.py",
+    "tests/test_phase25.py"
+  ],
+  "lobby.py": [
+    "main.py",
     "tests/test_phase25.py"
   ],
   "player.py": [
@@ -27,25 +61,18 @@
     "menu.py",
     "tests/test_phase25.py"
   ],
-  "camera.py": [
+  "hud.py": [
     "main.py",
     "tests/test_phase25.py"
-  ],
-  "sounds.py": [
-    "main.py"
-  ],
-  "menu.py": [
-    "main.py"
   ],
   "effects.py": [
     "main.py",
     "tests/test_phase25.py"
   ],
-  "wave_manager.py": [
-    "main.py",
-    "tests/test_phase25.py"
+  "leaderboard.py": [
+    "main.py"
   ],
-  "obstacles.py": [
+  "camera.py": [
     "main.py",
     "tests/test_phase25.py"
   ],
@@ -53,22 +80,22 @@
     "main.py",
     "tests/test_phase25.py"
   ],
-  "hud.py": [
-    "main.py",
-    "tests/test_phase25.py"
+  "music.py": [
+    "main.py"
   ],
-  "lobby.py": [
+  "sounds.py": [
+    "main.py"
+  ],
+  "cathedral.py": [
+    "main.py"
+  ],
+  "wave_manager.py": [
     "main.py",
     "tests/test_phase25.py"
   ],
   "projectiles.py": [
     "main.py",
     "weapons.py",
-    "tests/test_phase25.py"
-  ],
-  "enemies.py": [
-    "main.py",
-    "wave_manager.py",
     "tests/test_phase25.py"
   ],
   "main.py": [

@@ -121,6 +121,10 @@ class Enemy:
         self.blood_color = t["blood_color"]
         self.is_boss = t.get("is_boss", False)
 
+        # Animator
+        from sprites import SpriteAnimator, ENEMY_TO_TEMPLATE
+        self.animator = SpriteAnimator(ENEMY_TO_TEMPLATE.get(type_id, "skeleton"), scale=2)
+
         # Demon ranged attack
         self.shoot_range = t.get("shoot_range", 0)
         self.shoot_cd = t.get("shoot_cd", 0)
@@ -133,6 +137,7 @@ class Enemy:
         self.alive = True
         self.hit_flash = 0.0
         self.stun_timer = 0.0
+        self.death_fade = 0.0  # > 0 = fading out
 
     def take_damage(self, amount: float) -> bool:
         """Возвращает True если враг умер."""
@@ -185,6 +190,16 @@ class Enemy:
             d = d.normalize()
             self.pos += d * self.speed * 60 * dt
 
+            # Walk animation
+            if abs(d.x) > abs(d.y):
+                self.animator.set_state("walk_right" if d.x > 0 else "walk_left")
+            else:
+                self.animator.set_state("walk_down" if d.y > 0 else "walk_up")
+        else:
+            self.animator.set_state("idle")
+
+        self.animator.update(dt)
+
         # Hit flash
         if self.hit_flash > 0:
             self.hit_flash -= dt
@@ -197,15 +212,38 @@ class Enemy:
         if sx < -50 or sx > 1074 or sy < -50 or sy > 818:
             return
 
-        # Спрайт
-        from sprites import get_enemy_sprite
-        sprite = get_enemy_sprite(self.type_id, scale=2)
+        # Death state — animator
+        if self.death_fade > 0:
+            self.animator.set_state("death")
+
+        # Спрайт — animator
+        sprite = self.animator.get_surface()
+
+        # Death fade alpha
+        if self.death_fade > 0:
+            alpha = int(255 * (self.death_fade / 0.4))
+            sprite = sprite.copy()
+            sprite.set_alpha(alpha)
+            fade_progress = 1.0 - (self.death_fade / 0.4)
+            shrink = max(1, int(32 * (1 - fade_progress * 0.3)))
+            sprite = pygame.transform.scale(sprite, (shrink, shrink))
+
         if self.hit_flash > 0:
             # Белая вспышка при ударе
             sprite = sprite.copy()
             sprite.fill((255, 255, 255), special_flags=pygame.BLEND_ADD)
         sprite_rect = sprite.get_rect(center=(sx, sy))
         surface.blit(sprite, sprite_rect)
+
+        # Stun visual — вращающиеся звёздочки над головой
+        if self.stun_timer > 0:
+            import math
+            t = pygame.time.get_ticks() / 1000.0
+            for i in range(3):
+                angle = t * 3.0 + i * 2.094  # 2π/3
+                star_x = sx + int(math.cos(angle) * 12)
+                star_y = sy - self.radius - 10 + int(math.sin(angle) * 4)
+                pygame.draw.circle(surface, (255, 255, 100), (star_x, star_y), 2)
 
         # HP-бар (для боссов и если урон получен)
         if self.is_boss or self.hp < self.max_hp:

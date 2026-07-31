@@ -12,12 +12,12 @@ from camera import Camera
 from wave_manager import WaveManager
 from xp_system import XPGem, LevelUpScreen
 from weapons import create_weapon
-from projectiles import DamageNumber, Particle, Pulse, Projectile
+from projectiles import DamageNumber, Particle, Pulse, Projectile, floating_numbers
 from hud import draw_hud
-from effects import ScreenShake, ScreenFlash, draw_grid
+from effects import ScreenShake, ScreenFlash, LowHPVignette, draw_grid
 from menu import MainMenu
 from enemies import ENEMY_TYPES
-from obstacles import generate_obstacles
+from obstacles import generate_obstacles, preload_obstacle_sprites
 from lobby import MetaProgress, LobbyScreen
 from save_system import save_progress, load_progress
 from arcana import Arcana
@@ -33,6 +33,7 @@ big_font = None
 sound_mgr = None
 shake = ScreenShake()
 flash = ScreenFlash()
+vignette = LowHPVignette()
 
 
 def init_pygame():
@@ -86,7 +87,6 @@ class Game:
         self.enemies = []
         self.projectiles = []
         self.gems = []
-        self.damage_numbers = []
         self.particles = []
         self.pulses = []
         self.obstacles = []
@@ -106,7 +106,6 @@ class Game:
         self.enemies = []
         self.projectiles = []
         self.gems = []
-        self.damage_numbers = []
         self.particles = []
         self.pulses = []
         self.elapsed = 0.0
@@ -137,6 +136,7 @@ class Game:
             self.obstacles = generate_cathedral()
         else:
             self.obstacles = generate_obstacles(25)
+        preload_obstacle_sprites()
         self._reaper_spawned = False
 
     def handle_events(self):
@@ -228,9 +228,24 @@ class Game:
             shake.trigger(15, 0.5)
 
         # 3. Оружие
+        pulses_before = len(self.pulses)
         for w in self.player.weapons:
             w.update(self.player, self.enemies, self.projectiles,
-                     self.pulses, self.particles, self.damage_numbers, dt)
+                     self.pulses, self.particles, floating_numbers, dt)
+
+        # Screen shake + attack animation при атаках оружия
+        if len(self.pulses) > pulses_before:
+            # Attack animation на игроке
+            self.player.animator.start_attack()
+
+            last_pulse = self.pulses[-1]
+            pulse_type = type(last_pulse).__name__
+            if pulse_type == "WhipSweep":
+                shake.trigger(2, 0.05)
+            elif pulse_type == "LightningBolt":
+                shake.trigger(5, 0.15)
+            elif pulse_type == "RingWave":
+                shake.trigger(4, 0.1)
 
         # 4. Враги
         enemy_speed_mult = self.arcana_data.get("enemy_speed_mult", 1.0)
@@ -291,8 +306,8 @@ class Game:
                         killed = e.take_damage(p.damage)
                         p.hit_set.add(id(e))
 
-                        self.damage_numbers.append(
-                            DamageNumber(e.pos.x, e.pos.y, p.damage, p.color))
+                        floating_numbers.spawn_damage(
+                            e.pos.x, e.pos.y, p.damage, p.color)
                         for _ in range(3):
                             self.particles.append(Particle(e.pos.x, e.pos.y, p.color))
 
@@ -304,6 +319,10 @@ class Game:
                             p.alive = False
                             # Explosive
                             if p.explosive:
+                                # Визуал взрыва
+                                self.pulses.append(Pulse(p.pos.x, p.pos.y, p.explode_r, p.color, duration=0.3))
+                                for _ in range(8):
+                                    self.particles.append(Particle(p.pos.x, p.pos.y, p.color, speed=4.0, lifetime=0.3))
                                 for e2 in self.enemies:
                                     if not e2.alive or e2 is e:
                                         continue
@@ -311,8 +330,8 @@ class Game:
                                     dy2 = e2.pos.y - p.pos.y
                                     if dx2 * dx2 + dy2 * dy2 < (p.explode_r + e2.radius) ** 2:
                                         e2.take_damage(p.explode_dmg)
-                                        self.damage_numbers.append(
-                                            DamageNumber(e2.pos.x, e2.pos.y, p.explode_dmg, p.color))
+                                        floating_numbers.spawn_damage(
+                                            e2.pos.x, e2.pos.y, p.explode_dmg, p.color)
                             break
                         else:
                             p.pierce -= 1
@@ -328,8 +347,8 @@ class Game:
                         sound_mgr.play("player_hit")
                     flash.trigger()
                     shake.trigger(3, 0.08)
-                    self.damage_numbers.append(
-                        DamageNumber(self.player.pos.x, self.player.pos.y, p.damage, p.color))
+                    floating_numbers.spawn_damage(
+                        self.player.pos.x, self.player.pos.y, p.damage, p.color)
 
         # 6. XP-гемы
         for gem in self.gems:
@@ -377,6 +396,11 @@ class Game:
                 self.player.kills += 1
                 self.player.gold += int(e.score * 0.1 * self.meta.get_powerup_bonus("greed") * self.player.gold_mult)
 
+                # Death particles (кровь)
+                blood_color = getattr(e, 'blood_color', (200, 50, 50))
+                for _ in range(6):
+                    self.particles.append(Particle(e.pos.x, e.pos.y, blood_color, speed=3.0, lifetime=0.4))
+
         # Очистка + деспавн далёких врагов
         from config import DESPAWN_DISTANCE
         for e in self.enemies:
@@ -384,18 +408,26 @@ class Game:
                 dist = (e.pos - self.player.pos).length()
                 if dist > DESPAWN_DISTANCE:
                     e.alive = False
-        self.enemies = [e for e in self.enemies if e.alive]
+
+        # Death fade: умершие враги сначала затухают, потом удаляются
+        for e in self.enemies:
+            if not e.alive and e.death_fade <= 0:
+                e.death_fade = 0.4  # 0.4 секунды fade
+            if e.death_fade > 0:
+                e.death_fade -= dt
+
+        # Удаляем полностью затухших + далеко деспавненных
+        self.enemies = [e for e in self.enemies if e.alive or e.death_fade > 0]
         self.projectiles = [p for p in self.projectiles if p.alive]
         self.gems = [g for g in self.gems if g.alive]
-        self.damage_numbers = [d for d in self.damage_numbers if d.alive]
+        floating_numbers.update(dt)
         self.particles = [p for p in self.particles if p.alive]
         self.pulses = [p for p in self.pulses if p.alive]
 
         # 8. Эффекты
         shake.update(dt)
         flash.update(dt)
-        for d in self.damage_numbers:
-            d.update(dt)
+        vignette.update(self.player.hp / max(1, self.player.max_hp), dt)
         for p in self.particles:
             p.update(dt)
         for p in self.pulses:
@@ -474,6 +506,13 @@ class Game:
 
             self.levelup_screen.activate(self.player)
             self.state = "levelup"
+
+            # Level up burst — кольцо частиц
+            for _ in range(20):
+                self.particles.append(Particle(self.player.pos.x, self.player.pos.y,
+                                               (255, 220, 100), speed=4.0, lifetime=0.6))
+            self.pulses.append(Pulse(self.player.pos.x, self.player.pos.y,
+                                     80, (255, 220, 100), duration=0.4))
             if sound_mgr:
                 sound_mgr.play("levelup")
 
@@ -535,13 +574,17 @@ class Game:
         # Игрок
         self.player.draw(screen, cam_x, cam_y)
 
+        # Оружие (Halo, Rosary, Incense — орбитальное/бумеранги)
+        for w in self.player.weapons:
+            if hasattr(w, 'draw'):
+                w.draw(screen, cam_x, cam_y, self.player)
+
         # Частицы
         for p in self.particles:
             p.draw(screen, cam_x, cam_y)
 
-        # Damage numbers
-        for d in self.damage_numbers:
-            d.draw(screen, cam_x, cam_y, small_font)
+        # Damage numbers (floating manager)
+        floating_numbers.draw(screen, cam_x, cam_y, small_font)
 
         # HUD
         draw_hud(screen, self.player, self.wave_mgr.wave, self.elapsed, font, small_font)
@@ -556,6 +599,9 @@ class Game:
 
         # Screen flash
         flash.draw(screen)
+
+        # Low HP vignette
+        vignette.draw(screen)
 
 
 def _render_error_screen(err_text: str):

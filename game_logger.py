@@ -413,7 +413,6 @@ class SessionLogger:
     # CLOSE
     # ----------------------------------------------------------
     def close(self, reason: str = "normal"):
-        self._flush_buffer()  # flush remaining buffered entries
         self._write({
             "type": LogType.SESSION_END,
             "reason": reason,
@@ -423,6 +422,7 @@ class SessionLogger:
             "duration": round(self.elapsed, 1),
         })
         self._active = False
+        self._flush_buffer()  # flush SESSION_END + any remaining
 
     # ----------------------------------------------------------
     # ANALYZE — чтение и анализ лога

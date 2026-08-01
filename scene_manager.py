@@ -61,6 +61,7 @@ class SceneManager:
         self.overlay: Optional[OverlayScene] = None
         self._transition_queue: list[str] = []
         self._transition_kwargs: dict = {}
+        self.fade = None  # FadeManager (опционально)
     
     def register(self, name: str, scene: Scene):
         """Регистрирует сцену."""
@@ -71,12 +72,12 @@ class SceneManager:
         self._transition_queue.append(name)
         self._transition_kwargs = kwargs
     
-    def push_overlay(self, overlay: OverlayScene):
+    def push_overlay(self, overlay: OverlayScene, **kwargs):
         """Показывает оверлей поверх текущей сцены."""
         if self.current:
             overlay.set_background(self.scenes[self.current])
         self.overlay = overlay
-        overlay.enter()
+        overlay.enter(**kwargs)
     
     def pop_overlay(self):
         """Закрывает оверлей."""
@@ -90,6 +91,17 @@ class SceneManager:
             return
         
         name = self._transition_queue.pop(0)
+        
+        # Special: "__pause__" = открыть паузу после settings
+        if name == "__pause__":
+            from scenes import PauseOverlay
+            pause = PauseOverlay()
+            current_scene = self.scenes.get(self.current)
+            game = getattr(current_scene, 'game', None) if current_scene else None
+            self.push_overlay(pause, game=game)
+            self._transition_kwargs = {}
+            return
+        
         if name not in self.scenes:
             return
         
@@ -117,22 +129,48 @@ class SceneManager:
         # Оверлей получает приоритет
         if self.overlay:
             result = self.overlay.handle_events(events)
-            if result:
+            if result == "__overlay__":
                 self.pop_overlay()
-                if result != "__overlay__":
-                    self.switch(result)
+            elif result:
+                self.pop_overlay()
+                self.switch(result)
             return True
         
-        # Основная сцена
+        # Основная сцена (ARCH-4: адаптер для handle_event/handle_events)
         if self.current:
-            result = self.scenes[self.current].handle_events(events)
-            if result:
+            scene = self.scenes[self.current]
+            if hasattr(scene, 'handle_events'):
+                result = scene.handle_events(events)
+            else:
+                # Адаптер: вызываем handle_event для каждого события
+                result = None
+                for event in events:
+                    result = scene.handle_event(event)
+                    if result:
+                        break
+            if result == "__quit__":
+                return False
+            elif result == "__pause__":
+                # Создаём и показываем оверлей паузы
+                from scenes import PauseOverlay
+                pause = PauseOverlay()
+                # Передаём game из GameScene
+                current_scene = self.scenes[self.current]
+                game = getattr(current_scene, 'game', None)
+                self.push_overlay(pause, game=game)
+            elif isinstance(result, tuple) and len(result) == 2:
+                # (scene_name, kwargs) — передаём параметры в switch
+                name, kwargs = result
+                self.switch(name, **kwargs)
+            elif result:
                 self.switch(result)
         
         return True
     
     def update(self, dt: float):
         """Обновляет текущую сцену (и оверлей)."""
+        if self.fade:
+            self.fade.update(dt)
         self._do_transition()
         
         if self.overlay:
@@ -143,7 +181,10 @@ class SceneManager:
     def draw(self, screen: pygame.Surface):
         """Рисует текущую сцену (и оверлей)."""
         if self.overlay:
-            # Оверлей сам рисует фон
             self.overlay.draw(screen)
         elif self.current:
             self.scenes[self.current].draw(screen)
+        
+        # Fade overlay поверх всего
+        if self.fade:
+            self.fade.draw(screen)

@@ -11,7 +11,7 @@ from ui_theme import (
     BG_NEAR_BLACK, BG_DARK, STONE_BASE, STONE_LIGHT, STONE_DARK,
     GOLD_LEAF, GOLD_IDLE, GOLD_GLOW, GOLD_DARK,
     TEXT_PRIMARY, TEXT_SECONDARY, TEXT_DIM, TEXT_GOLD, TEXT_GREY,
-    DANGER_RED, IRON, IRON_LIGHT,
+    DANGER_RED, IRON, IRON_LIGHT, HP_RED, HP_LOW,
     PANEL_PADDING, PANEL_RADIUS, PANEL_BORDER_W,
     BTN_MEDIUM_W, BTN_MEDIUM_H, BTN_LARGE_W, BTN_LARGE_H, BTN_GAP,
     TAB_H, TAB_GAP, TAB_RADIUS,
@@ -680,9 +680,9 @@ class UIConfirmDialog(UIElement):
         self.btn_yes.is_focused = False
         self.btn_no.is_focused = True
 
-    def handle_event(self, event: pygame.event.Event):
+    def handle_event(self, event: pygame.event.Event) -> bool:
         if not self.active:
-            return None
+            return False
 
         self.timer += 0.016  # approximate
 
@@ -695,7 +695,7 @@ class UIConfirmDialog(UIElement):
                 self.btn_yes.is_focused = (self.selected == 0)
                 self.btn_no.is_focused = (self.selected == 1)
                 sound_manager.play("ui_hover")
-                return None
+                return False
             if event.key in (pygame.K_RETURN, pygame.K_SPACE):
                 if self.selected == 0:
                     self.active = False
@@ -925,5 +925,374 @@ class UIParticleSystem:
             if p.alpha <= 0:
                 continue
             s = pygame.Surface((int(p.size * 2), int(p.size * 2)), pygame.SRCALPHA)
-            pygame.draw.circle(s, (*p.color, p.alpha), (int(p.size), int(p.size)), int(p.size))
+            c = tuple(int(x) for x in p.color[:3])
+            pygame.draw.circle(s, (c[0], c[1], c[2], int(p.alpha)), (int(p.size), int(p.size)), int(p.size))
             surface.blit(s, (int(p.x - p.size), int(p.y - p.size)))
+
+
+# ============================================================
+# PDF-INSPIRED COMPONENTS
+# ============================================================
+
+
+# --- PIXEL POINTER (меч/стрелка при hover) ---
+
+class UIHoverPointer:
+    """Pixel art pointer that appears next to hovered button text."""
+
+    def __init__(self):
+        self.x = 0
+        self.y = 0
+        self.visible = False
+        self.blink_timer = 0.0
+
+    def set_position(self, x: int, y: int, visible: bool = True):
+        self.x = x
+        self.y = y
+        self.visible = visible
+
+    def update(self, dt: float):
+        self.blink_timer += dt
+
+    def draw(self, surface: pygame.Surface):
+        if not self.visible:
+            return
+        # Blinking sword/arrow pointer
+        alpha = 255 if int(self.blink_timer * 3) % 2 == 0 else 180
+        # Small arrow pointing right: ►
+        pts = [
+            (self.x, self.y - 5),
+            (self.x + 8, self.y),
+            (self.x, self.y + 5),
+        ]
+        pygame.draw.polygon(surface, (*GOLD_LEAF[:3], alpha), pts)
+
+
+# --- HEART BAR (счётчик сердечек) ---
+
+class UIHeartBar(UIElement):
+    """Heart-based HP display. Each heart = heart_value HP."""
+
+    def __init__(self, x: int, y: int, hearts: int = 5, heart_value: int = 20,
+                 heart_size: int = 12):
+        super().__init__(x, y, hearts * (heart_size + 4), heart_size + 4)
+        self.hearts = hearts
+        self.heart_value = heart_value
+        self.heart_size = heart_size
+        self.hp = hearts * heart_value
+        self.display_hp = float(self.hp)
+        self.lerp_speed = 5.0
+
+    def set_hp(self, hp: int):
+        self.hp = max(0, min(self.hearts * self.heart_value, hp))
+
+    def update(self, dt: float):
+        diff = self.hp - self.display_hp
+        if abs(diff) > 0.5:
+            self.display_hp += diff * self.lerp_speed * dt
+        else:
+            self.display_hp = float(self.hp)
+
+    def draw(self, surface: pygame.Surface):
+        if not self.visible:
+            return
+        hs = self.heart_size
+        gap = 4
+
+        for i in range(self.hearts):
+            hx = self.rect.x + i * (hs + gap)
+            hy = self.rect.y
+
+            # How much HP this heart represents
+            heart_start = i * self.heart_value
+            heart_end = heart_start + self.heart_value
+            hp_in_heart = max(0.0, min(self.heart_value, self.display_hp - heart_start))
+            fill_ratio = hp_in_heart / self.heart_value
+
+            # Draw heart shape
+            self._draw_heart(surface, hx + hs // 2, hy + hs // 2, hs // 2, fill_ratio)
+
+    def _draw_heart(self, surface, cx, cy, r, fill_ratio):
+        """Draw a pixel heart at (cx, cy) with radius r."""
+        # Simplified pixel heart: two circles + triangle
+        # Background (empty)
+        pygame.draw.circle(surface, (40, 10, 10), (cx - r // 3, cy - r // 4), r // 2)
+        pygame.draw.circle(surface, (40, 10, 10), (cx + r // 3, cy - r // 4), r // 2)
+        pygame.draw.polygon(surface, (40, 10, 10), [
+            (cx - r, cy), (cx + r, cy), (cx, cy + r)
+        ])
+
+        # Fill portion
+        if fill_ratio > 0:
+            color = HP_RED if fill_ratio > 0.3 else HP_LOW
+            clip_h = int(r * 2 * (1.0 - fill_ratio))
+            clip_rect = pygame.Rect(cx - r, cy - r + clip_h, r * 2, r * 2 - clip_h)
+
+            # Draw filled heart clipped
+            temp = pygame.Surface((r * 2, r * 2), pygame.SRCALPHA)
+            tcx, tcy = r, r
+            pygame.draw.circle(temp, color, (tcx - r // 3, tcy - r // 4), r // 2)
+            pygame.draw.circle(temp, color, (tcx + r // 3, tcy - r // 4), r // 2)
+            pygame.draw.polygon(temp, color, [
+                (tcx - r, tcy), (tcx + r, tcy), (tcx, tcy + r)
+            ])
+            surface.blit(temp, (cx - r, cy - r), clip_rect)
+
+
+# --- HOTBAR (быстрые слоты) ---
+
+class UIHotbar(UIElement):
+    """Bottom hotbar with numbered slots, icon + stack count."""
+
+    def __init__(self, x: int, y: int, slot_count: int = 6, slot_size: int = 40):
+        total_w = slot_count * (slot_size + 4) - 4
+        super().__init__(x, y, total_w, slot_size + 20)
+        self.slot_count = slot_count
+        self.slot_size = slot_size
+        self.slots = [None] * slot_count  # list of slot data dicts
+        self.active_slot = 0
+        self.font = get_tiny_font()
+        self.num_font = get_tiny_font()
+
+    def set_slot(self, index: int, data: dict):
+        """Set slot data: {'name': str, 'icon_color': tuple, 'count': int, 'level': int}"""
+        if 0 <= index < self.slot_count:
+            self.slots[index] = data
+
+    def draw(self, surface: pygame.Surface):
+        if not self.visible:
+            return
+        s = self.slot_size
+        gap = 4
+
+        for i in range(self.slot_count):
+            sx = self.rect.x + i * (s + gap)
+            sy = self.rect.y + 16  # space for number above
+
+            # Slot background
+            is_active = (i == self.active_slot)
+            fill = STONE_LIGHT if is_active else STONE_BASE
+            border = GOLD_LEAF if is_active else IRON
+            bw = 2 if is_active else 1
+
+            pygame.draw.rect(surface, fill, (sx, sy, s, s), border_radius=4)
+            pygame.draw.rect(surface, border, (sx, sy, s, s), bw, border_radius=4)
+
+            # Number label (1-8)
+            num_text = str(i + 1)
+            nt = self.num_font.render(num_text, True, TEXT_DIM)
+            surface.blit(nt, (sx + 2, sy - 14))
+
+            # Slot content
+            slot = self.slots[i]
+            if slot:
+                # Icon (colored rect placeholder)
+                icon_color = slot.get('icon_color', (120, 120, 120))
+                icon_rect = pygame.Rect(sx + 4, sy + 4, s - 8, s - 8)
+                pygame.draw.rect(surface, icon_color, icon_rect, border_radius=3)
+
+                # Level indicator
+                level = slot.get('level', 1)
+                if level > 1:
+                    lt = self.font.render(f"Lv{level}", True, GOLD_LEAF)
+                    surface.blit(lt, (sx + s - lt.get_width() - 2, sy + s - lt.get_height() - 2))
+
+                # Stack count (bottom-right)
+                count = slot.get('count', 0)
+                if count > 1:
+                    ct = self.font.render(str(count), True, TEXT_PRIMARY)
+                    surface.blit(ct, (sx + s - ct.get_width() - 2, sy + 2))
+
+
+# --- TOOLTIP (всплывающая подсказка с задержкой) ---
+
+class UITooltip:
+    """Appears after hover delay. Shows name (rarity-colored), type, stats."""
+
+    def __init__(self):
+        self.visible = False
+        self.timer = 0.0
+        self.delay = 0.5  # seconds
+        self.x = 0
+        self.y = 0
+        self.name = ""
+        self.item_type = ""
+        self.stats = []  # list of str
+        self.name_color = TEXT_PRIMARY
+        self.font = get_body_font()
+        self.small = get_small_font()
+
+    def show(self, x: int, y: int, name: str, item_type: str = "",
+             stats: list = None, name_color=None):
+        self.x = x
+        self.y = y
+        self.name = name
+        self.item_type = item_type
+        self.stats = stats or []
+        self.name_color = name_color or TEXT_PRIMARY
+        self.timer = 0.0
+        self.visible = False  # not yet, waiting for delay
+
+    def hide(self):
+        self.visible = False
+        self.timer = 0.0
+
+    def update(self, dt: float):
+        if self.name and not self.visible:
+            self.timer += dt
+            if self.timer >= self.delay:
+                self.visible = True
+
+    def draw(self, surface: pygame.Surface):
+        if not self.visible or not self.name:
+            return
+
+        # Calculate size
+        name_surf = self.font.render(self.name, True, self.name_color)
+        type_surf = self.small.render(self.item_type, True, TEXT_GREY) if self.item_type else None
+        stat_surfs = [self.small.render(s, True, TEXT_SECONDARY) for s in self.stats]
+
+        w = max(name_surf.get_width(), *(s.get_width() for s in stat_surfs),
+                type_surf.get_width() if type_surf else 0) + 24
+        h = name_surf.get_height() + 8
+        if type_surf:
+            h += type_surf.get_height() + 4
+        h += len(stat_surfs) * (self.small.get_height() + 2)
+        h += 16
+
+        # Clamp to screen
+        tx = min(self.x + 16, 1024 - w - 8)
+        ty = max(8, self.y - h - 8)
+
+        # Background
+        bg = pygame.Surface((w, h), pygame.SRCALPHA)
+        bg.fill((20, 18, 25, 230))
+        pygame.draw.rect(bg, GOLD_DARK, (0, 0, w, h), 1, border_radius=6)
+        surface.blit(bg, (tx, ty))
+
+        # Name
+        surface.blit(name_surf, (tx + 12, ty + 8))
+        y_off = ty + 8 + name_surf.get_height() + 4
+
+        # Type
+        if type_surf:
+            surface.blit(type_surf, (tx + 12, y_off))
+            y_off += type_surf.get_height() + 4
+
+        # Stats
+        for ss in stat_surfs:
+            surface.blit(ss, (tx + 12, y_off))
+            y_off += ss.get_height() + 2
+
+
+# --- PIXELATE FADE TRANSITION ---
+
+class PixelateTransition:
+    """Transition that pixelates the screen (downscale → upscale → fade)."""
+
+    def __init__(self):
+        self.active = False
+        self.timer = 0.0
+        self.duration = 0.5
+        self.phase = 'none'  # 'pixelate', 'fade', 'done'
+        self.callback = None
+
+    def start(self, duration=0.5, callback=None):
+        self.active = True
+        self.timer = 0.0
+        self.duration = max(0.1, duration)
+        self.phase = 'pixelate'
+        self.callback = callback
+
+    def update(self, dt: float):
+        if not self.active:
+            return
+        self.timer += dt
+        t = min(1.0, self.timer / self.duration)
+
+        if self.phase == 'pixelate' and t >= 0.6:
+            self.phase = 'fade'
+            if self.callback:
+                cb = self.callback
+                self.callback = None
+                cb()
+        if self.phase == 'fade' and t >= 1.0:
+            self.active = False
+            self.phase = 'done'
+
+    def draw(self, screen: pygame.Surface):
+        if not self.active:
+            return
+        t = min(1.0, self.timer / self.duration)
+
+        if self.phase == 'pixelate':
+            # Progressive pixelation
+            pixel_level = max(2, int(48 * (1.0 - t / 0.6)))
+            small_w = max(2, 1024 // pixel_level)
+            small_h = max(2, 768 // pixel_level)
+            small = pygame.transform.scale(screen, (small_w, small_h))
+            pixelated = pygame.transform.scale(small, (1024, 768))
+            screen.blit(pixelated, (0, 0))
+
+        elif self.phase == 'fade':
+            # Fade to black
+            fade_t = (t - 0.6) / 0.4
+            alpha = int(255 * fade_t)
+            overlay = pygame.Surface((1024, 768), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, alpha))
+            screen.blit(overlay, (0, 0))
+
+
+# --- WIPE TRANSITION ---
+
+class WipeTransition:
+    """Pixel curtain wipe transition."""
+
+    def __init__(self):
+        self.active = False
+        self.timer = 0.0
+        self.duration = 0.4
+        self.direction = 'left'  # 'left', 'right', 'up', 'down'
+        self.callback = None
+        self.color = (0, 0, 0)
+
+    def start(self, direction='left', duration=0.4, color=(0, 0, 0), callback=None):
+        self.active = True
+        self.timer = 0.0
+        self.duration = max(0.1, duration)
+        self.direction = direction
+        self.callback = callback
+        self.color = color
+
+    def update(self, dt: float):
+        if not self.active:
+            return
+        self.timer += dt
+        t = min(1.0, self.timer / self.duration)
+
+        if t >= 0.5 and self.callback:
+            cb = self.callback
+            self.callback = None
+            cb()
+
+        if t >= 1.0:
+            self.active = False
+
+    def draw(self, screen: pygame.Surface):
+        if not self.active:
+            return
+        t = min(1.0, self.timer / self.duration)
+        e = ease_out_cubic(t)
+
+        if self.direction in ('left', 'right'):
+            wipe_w = int(1024 * e)
+            if self.direction == 'left':
+                pygame.draw.rect(screen, self.color, (0, 0, wipe_w, 768))
+            else:
+                pygame.draw.rect(screen, self.color, (1024 - wipe_w, 0, wipe_w, 768))
+        else:
+            wipe_h = int(768 * e)
+            if self.direction == 'up':
+                pygame.draw.rect(screen, self.color, (0, 0, 1024, wipe_h))
+            else:
+                pygame.draw.rect(screen, self.color, (0, 768 - wipe_h, 1024, wipe_h))

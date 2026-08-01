@@ -3,12 +3,14 @@
 Полный кодекс: Враги / Оружие / Эволюции.
 Экран с тремя вкладками, kill tracking, описания, рецепты.
 Stained-glass medallion grid (vitrazh style) for enemies.
+B4: Shared parchment from hud.py for illuminated manuscript style.
 """
 import math
 import pygame
-from config import WIDTH, HEIGHT, WHITE, GOLD, DARK_BG, RED, GREEN
+from config import WIDTH, HEIGHT, WHITE, GOLD, DARK_BG
 from enemies import ENEMY_TYPES
 from weapons import WEAPON_DEFS, PASSIVE_DEFS, EVOLUTIONS
+from hud import generate_parchment, PARCH_DARK, PARCH_MID, PARCH_BASE, PARCH_LIGHT, PARCH_INK, PARCH_INK_DIM
 
 
 # ============================================================
@@ -126,13 +128,7 @@ GRID_COLS = 4
 GRID_X = 25
 GRID_Y = 148
 
-# Parchment palette
-PARCH_DARK = (18, 14, 8)
-PARCH_MID = (32, 26, 18)
-PARCH_BASE = (48, 40, 30)
-PARCH_LIGHT = (58, 50, 38)
-PARCH_INK = (200, 190, 160)
-PARCH_INK_DIM = (140, 130, 110)
+# B4: Parchment palette now imported from hud.py
 
 
 class CodexScreen:
@@ -386,29 +382,9 @@ class CodexScreen:
     # Parchment panel with singed edges
     # ============================================================
     def _draw_parchment_panel(self, surface, x, y, w, h):
-        """Draw parchment background with singed/burned edges."""
-        # Layer 1: outer charred edge
-        pygame.draw.rect(surface, PARCH_DARK, (x, y, w, h), border_radius=8)
-        # Layer 2: smoke-stained ring
-        pygame.draw.rect(surface, PARCH_MID, (x + 4, y + 4, w - 8, h - 8), border_radius=6)
-        # Layer 3: parchment base
-        pygame.draw.rect(surface, PARCH_BASE, (x + 10, y + 10, w - 20, h - 20), border_radius=5)
-        # Layer 4: lighter inner area
-        pygame.draw.rect(surface, PARCH_LIGHT, (x + 14, y + 14, w - 28, h - 28), border_radius=4)
-
-        # Corner burns (darker patches)
-        bsz = 22
-        corners = [
-            (x + 12, y + 12),
-            (x + w - 12 - bsz, y + 12),
-            (x + 12, y + h - 12 - bsz),
-            (x + w - 12 - bsz, y + h - 12 - bsz),
-        ]
-        for cx_, cy_ in corners:
-            pygame.draw.rect(surface, PARCH_MID, (cx_, cy_, bsz, bsz), border_radius=5)
-
-        # Decorative top border line (ink)
-        pygame.draw.line(surface, (80, 70, 50), (x + 18, y + 16), (x + w - 18, y + 16), 1)
+        """B4: Shared parchment with singed/burned edges from hud.generate_parchment."""
+        parch = generate_parchment(w, h, seed=hash((x, y, w)) & 0xFFFF)
+        surface.blit(parch, (x, y))
 
     # ============================================================
     # Enemy details on parchment
@@ -554,9 +530,13 @@ class CodexScreen:
             si = small_font.render(f"{self.scroll+1}-{min(self.scroll+max_visible, len(WEAPON_ORDER))}/{len(WEAPON_ORDER)}", True, (60, 60, 60))
             surface.blit(si, (list_x + list_w - si.get_width() - 5, list_y + max_visible * row_h + 2))
 
-        # Правая панель: детали
+        # Правая панель: детали — B4: parchment background
         det_x = 290
         det_y = y_start + 5
+        det_w = WIDTH - det_x - 20
+        det_h = HEIGHT - det_y - 50
+        parch = generate_parchment(det_w, det_h, seed=4001)
+        surface.blit(parch, (det_x, det_y))
 
         if self.selected < len(WEAPON_ORDER):
             wid = WEAPON_ORDER[self.selected]
@@ -569,7 +549,7 @@ class CodexScreen:
 
             # Имя
             name = wdef.get("name", wid)
-            name_t = big_font.render(name, True, WHITE)
+            name_t = big_font.render(name, True, PARCH_INK)
             surface.blit(name_t, (det_x + 70, det_y))
 
             # Тип оружия
@@ -581,7 +561,7 @@ class CodexScreen:
             desc_y = det_y + 70
             desc = wdesc.get("desc", "")
             if desc:
-                self._draw_wrapped(surface, small_font, desc, det_x, desc_y, 480, (200, 200, 200))
+                self._draw_wrapped(surface, small_font, desc, det_x, desc_y, 480, PARCH_INK_DIM)
                 desc_y += 40
 
             # Базовые статы

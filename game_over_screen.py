@@ -1,11 +1,12 @@
 """
 Рождение святого - Game Over Screen
 Полноценный экран поражения с анимациями и статистикой.
+B4: Catechism of Ruin — Quill-scratch reveal on title.
 """
 import pygame
 import math
-from config import WIDTH, HEIGHT, WHITE, GOLD, RED, DARK_BG
-from weapons import WEAPON_DEFS, PASSIVE_DEFS
+from config import WIDTH, HEIGHT, WHITE, GOLD, RED
+from weapons import PASSIVE_DEFS
 
 
 # Rarity colors (дублируем из hud.py для незавимости)
@@ -17,6 +18,8 @@ RARITY_COLORS = {
     'legendary': (255, 180, 50),
 }
 
+# B4: Module-level QuillReveal for title animation (defined after class below)
+
 
 class GameOverAnimator:
     """Аниматор для Game Over экрана."""
@@ -26,6 +29,12 @@ class GameOverAnimator:
 
     def reset(self):
         self.timer = 0.0
+        # Play death sound
+        try:
+            import sound_manager
+            sound_manager.play("game_over")
+        except Exception:
+            pass
         # Каждый элемент появляется с задержкой
         # 0.0s — fade в красной виньетке
         # 0.3s — "ПАЛ В БОЮ" title (scale punch)
@@ -50,8 +59,19 @@ class GameOverAnimator:
         }
 
     def get_alpha(self, phase: str, fade_duration: float = 0.3) -> int:
-        """Возвращает alpha (0-255) для фазы."""
-        start = self.phases.get(phase, 0)
+        """Возвращает alpha (0-255) для фазы. Поддерживает динамические фазы с offset."""
+        start = self.phases.get(phase, -1)
+        if start < 0:
+            # Динамическая фаза: "stats_0", "stats_1" и т.д.
+            # Берём базовую фазу "stats" + offset из суффикса
+            if phase.startswith("stats_"):
+                try:
+                    idx = int(phase.split("_")[1])
+                    start = self.phases["stats"] + idx * 0.2
+                except (ValueError, IndexError):
+                    return 0
+            else:
+                return 0
         if self.timer < start:
             return 0
         elapsed = self.timer - start
@@ -79,6 +99,72 @@ class GameOverAnimator:
         self.timer += dt
 
 
+class QuillReveal:
+    """Quill-scratch letter-by-letter reveal for illuminated manuscript text.
+
+    Each letter appears with a configurable delay, simulating a quill pen
+    writing across parchment. Ink drops (small particles) trail each letter.
+    """
+    CHAR_DELAY = 0.05  # seconds per character
+
+    def __init__(self):
+        self.timer = 0.0
+        self._ink_drops = []  # (x, y, alpha, size) tuples
+
+    def reset(self):
+        self.timer = 0.0
+        self._ink_drops = []
+
+    def update(self, dt: float):
+        self.timer += dt
+        # Decay ink drops
+        new_drops = []
+        for (x, y, a, s) in self._ink_drops:
+            a -= 300 * dt
+            if a > 0:
+                new_drops.append((x, y, a, s))
+        self._ink_drops = new_drops
+
+    def get_visible_count(self) -> int:
+        """How many characters are visible."""
+        return min(int(self.timer / self.CHAR_DELAY), 100)
+
+    def add_ink_drop(self, x: int, y: int):
+        """Add a small ink splatter at quill position."""
+        import random as _rng
+        self._ink_drops.append((x + _rng.randint(-3, 3), y + _rng.randint(-2, 2),
+                                _rng.randint(160, 240), _rng.randint(1, 3)))
+
+    def draw_text_revealed(self, surface, text: str, font, color, x: int, y: int):
+        """Draw text character-by-character with quill reveal effect."""
+        visible = self.get_visible_count()
+        if visible <= 0:
+            return
+        revealed = text[:visible]
+        # Render each character individually for precise positioning
+        char_x = x
+        for ch in revealed:
+            ch_surf = font.render(ch, True, color)
+            # Slight vertical jitter for handwritten feel
+            jitter_y = int(math.sin(ord(ch) * 0.7 + self.timer * 2.0) * 1.5)
+            surface.blit(ch_surf, (char_x, y + jitter_y))
+            # Add ink drop at quill tip
+            if ch != ' ':
+                self.add_ink_drop(char_x + ch_surf.get_width(), y + ch_surf.get_height() // 2)
+            char_x += ch_surf.get_width()
+
+        # Draw ink drops
+        for (dx, dy, da, ds) in self._ink_drops:
+            da_i = max(0, min(255, int(da)))
+            if da_i > 0 and ds > 0:
+                drop_surf = pygame.Surface((ds * 2, ds * 2), pygame.SRCALPHA)
+                pygame.draw.circle(drop_surf, (40, 30, 20, da_i), (ds, ds), ds)
+                surface.blit(drop_surf, (int(dx) - ds, int(dy) - ds))
+
+# B4: Module-level QuillReveal instance for game over title
+_quill = QuillReveal()
+
+
 class GameOverBuildPanel:
     """Панель билда (оружия + пассивки)."""
 
@@ -98,7 +184,7 @@ class GameOverBuildPanel:
             color = RARITY_COLORS.get(rarity, (120, 120, 120))
 
             # Имя + уровень
-            wname = w.display_name()
+            wname = w.name
             evolved = " [MAX]" if w.evolved else ""
             text_str = f"{wname} Lv{w.level}{evolved}"
 
@@ -149,6 +235,12 @@ def draw_game_over(screen, stats, animator, player=None, menu=None,
         player: Player объект (для билда, может быть None)
         menu: MainMenu (для leaderboard_rank/entries)
     """
+    # Guard: animator must exist
+    if animator is None:
+        from game_over_screen import GameOverAnimator
+        animator = GameOverAnimator()
+        animator.timer = 5.0
+
     if font is None:
         font = pygame.font.Font(None, 24)
     if big_font is None:
@@ -174,18 +266,32 @@ def draw_game_over(screen, stats, animator, player=None, menu=None,
 
     cx = WIDTH // 2  # центр по X
 
-    # === Title: "ПАЛ В БОЮ" ===
+    # === Title: "ПАЛ В БОЮ" — B4: Quill-scratch reveal ===
     title_alpha = animator.get_alpha('title', 0.4)
     title_scale = animator.get_scale('title', 0.5)
     if title_alpha > 0:
-        title_surf = big_font.render("ПАЛ В БОЮ", True, RED)
-        # Scale punch
-        if title_scale != 1.0:
-            w = int(title_surf.get_width() * title_scale)
-            h = int(title_surf.get_height() * title_scale)
-            title_surf = pygame.transform.smoothscale(title_surf, (w, h))
-        title_surf.set_alpha(title_alpha)
-        screen.blit(title_surf, (cx - title_surf.get_width() // 2, 50))
+        # Update quill timer
+        _quill.update(1 / 60)
+        # Reset quill when title phase just started
+        if animator.timer < animator.phases.get('title', 0) + 0.05:
+            _quill.reset()
+
+        if _quill.get_visible_count() >= len("ПАЛ В БОЮ"):
+            # Fully revealed — draw with scale punch
+            title_surf = big_font.render("ПАЛ В БОЮ", True, RED)
+            if title_scale != 1.0:
+                w = int(title_surf.get_width() * title_scale)
+                h = int(title_surf.get_height() * title_scale)
+                title_surf = pygame.transform.smoothscale(title_surf, (w, h))
+            title_surf.set_alpha(title_alpha)
+            screen.blit(title_surf, (cx - title_surf.get_width() // 2, 50))
+        else:
+            # Quill reveal in progress — draw character by character
+            title_text = "ПАЛ В БОЮ"
+            # Measure total width for centering
+            total_w = big_font.size(title_text)[0]
+            start_x = cx - total_w // 2
+            _quill.draw_text_revealed(screen, title_text, big_font, RED, start_x, 50)
 
     # === Разделитель 1 ===
     div1_alpha = animator.get_alpha('divider1', 0.2)
@@ -312,7 +418,7 @@ def draw_game_over(screen, stats, animator, player=None, menu=None,
     btn_alpha = animator.get_alpha('buttons', 0.3)
     if btn_alpha > 0:
         # Пульсация кнопок
-        pulse = (math.sin(pygame.time.get_ticks() / 400.0) + 1.0) / 2.0
+        pulse = (math.sin(animator.timer * 2.5) + 1.0) / 2.0  # ~400ms period
         btn_color = (
             int(200 + 55 * pulse),
             int(200 + 55 * pulse),

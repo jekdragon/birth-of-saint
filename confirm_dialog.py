@@ -5,6 +5,17 @@
 import pygame
 import math
 from config import WIDTH, HEIGHT, WHITE, GOLD
+import sound_manager
+
+
+# Font cache (PERF-1)
+_font_cache = {}
+
+def _get_fonts():
+    if not _font_cache:
+        _font_cache['font'] = pygame.font.Font(None, 24)
+        _font_cache['small'] = pygame.font.Font(None, 18)
+    return _font_cache['font'], _font_cache['small']
 
 
 class ConfirmDialog:
@@ -34,14 +45,11 @@ class ConfirmDialog:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
                 self.selected = 0
-                import sound_manager
                 sound_manager.play("ui_hover")
             elif event.key == pygame.K_RIGHT:
                 self.selected = 1
-                import sound_manager
                 sound_manager.play("ui_hover")
             elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                import sound_manager
                 if self.selected == 0:
                     sound_manager.play("ui_select")
                     self.result = True
@@ -53,7 +61,6 @@ class ConfirmDialog:
                     self.active = False
                     return False
             elif event.key == pygame.K_ESCAPE:
-                import sound_manager
                 sound_manager.play("ui_back")
                 self.result = False
                 self.active = False
@@ -69,10 +76,12 @@ class ConfirmDialog:
         if not self.active:
             return
 
-        if font is None:
-            font = pygame.font.Font(None, 24)
-        if small_font is None:
-            small_font = pygame.font.Font(None, 18)
+        if font is None or small_font is None:
+            cached_font, cached_small = _get_fonts()
+            if font is None:
+                font = cached_font
+            if small_font is None:
+                small_font = cached_small
 
         cx = WIDTH // 2
         cy = HEIGHT // 2

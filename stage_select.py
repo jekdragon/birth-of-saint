@@ -4,7 +4,7 @@
 """
 import pygame
 from scene_manager import Scene
-from config import WIDTH, HEIGHT, WHITE, GOLD, DARK_BG, GREEN
+from config import WIDTH, HEIGHT, WHITE, GOLD, DARK_BG, GREEN, MAP_DEFS, MAP_ORDER
 
 # Font cache (PERF-1)
 _font_cache = {}
@@ -17,33 +17,19 @@ def _get_fonts():
     return _font_cache['font'], _font_cache['big'], _font_cache['small']
 
 
-# Карты (пока одна, расширяемая)
-STAGES = [
-    {
-        "id": "cathedral",
-        "name": "Собор",
-        "desc": "Проклятый собор. Волны нечисти.",
-        "difficulty": 1,
-        "color": (100, 80, 60),
-        "unlocked": True,
-    },
-    {
-        "id": "catacombs",
-        "name": "Катакомбы",
-        "desc": "Подземелья под собором. Темнота и ужас.",
-        "difficulty": 3,
-        "color": (60, 40, 80),
-        "unlocked": False,
-    },
-    {
-        "id": "hellgate",
-        "name": "Врата Ада",
-        "desc": "Портал в преисподнюю. Финальное испытание.",
-        "difficulty": 5,
-        "color": (120, 30, 30),
-        "unlocked": False,
-    },
-]
+# ARCH-5: STAGES derived from config.MAP_DEFS
+STAGE_COLORS = {"arena": (100, 150, 80), "cathedral": (100, 80, 60), "catacombs": (60, 40, 80), "hellgate": (120, 30, 30)}
+STAGES = []
+for mid in MAP_ORDER:
+    m = MAP_DEFS[mid]
+    STAGES.append({
+        "id": mid,
+        "name": m["name"],
+        "desc": m["desc"],
+        "difficulty": m["diff"],
+        "color": STAGE_COLORS.get(mid, (100, 100, 100)),
+        "unlocked": m["unlocked"],
+    })
 
 
 class StageSelectScene(Scene):

@@ -67,13 +67,9 @@ class SplashScreen:
     def update(self, dt):
         self.timer += dt
 
-        # Fade-in
-        if self.fade_in.alpha > 0:
+        # Fade-in при старте (вызывается один раз)
+        if self.fade_in.alpha > 0 and self.fade_in.target != 0:
             self.fade_in.fade_in(speed=5.0)
-
-        # Fade-out
-        if self.fade_out.target == 255:
-            self.fade_out.fade_in(speed=8.5, callback=self._finish)
 
         self.fade_in.update(dt)
         self.fade_out.update(dt)
@@ -160,10 +156,12 @@ class SplashScreen:
         # === Fade overlays ===
         if self.fade_in.alpha > 0:
             fade = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-            fade.fill((0, 0, 0, self.fade_in.alpha))
+            a = int(self.fade_in.alpha)
+            fade.fill((0, 0, 0, a))
             screen.blit(fade, (0, 0))
 
         if self.fade_out.alpha > 0:
             fade = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-            fade.fill((0, 0, 0, self.fade_out.alpha))
+            a = int(self.fade_out.alpha)
+            fade.fill((0, 0, 0, a))
             screen.blit(fade, (0, 0))

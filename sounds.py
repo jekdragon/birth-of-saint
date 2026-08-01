@@ -63,6 +63,11 @@ class SoundManager:
         self.sounds["whip"] = self._synth(500, 0.1, 0.2, 'noise')
         self.sounds["fire"] = self._synth(300, 0.1, 0.15, 'square', sweep=100)
         self.sounds["aura"] = self._synth(700, 0.08, 0.15, 'sine')
+        # UI sounds
+        self.sounds["ui_hover"] = self._synth(800, 0.04, 0.15, 'sine')
+        self.sounds["ui_select"] = self._synth(600, 0.1, 0.25, 'sine')
+        self.sounds["ui_back"] = self._synth(400, 0.06, 0.15, 'sine', sweep=-100)
+        self.sounds["ui_confirm"] = self._synth(500, 0.15, 0.2, 'sine', sweep=200)
 
     def play(self, name: str):
         sound = self.sounds.get(name)

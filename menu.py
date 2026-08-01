@@ -176,9 +176,9 @@ class MainMenu:
                             sound_manager.play("ui_hover")
 
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                for btn in self._buttons:
+                for i, btn in enumerate(self._buttons):
                     if btn.handle_event(event):
-                        return None  # callback handles it
+                        return self._activate_button(i)
 
             # Keyboard
             elif event.type == pygame.KEYDOWN:

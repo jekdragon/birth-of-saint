@@ -118,13 +118,15 @@ class AnimatedAlpha:
         self._fading_out = False
 
     def fade_in(self, speed=5.0, callback=None):
-        self.target = 255
+        """Fade IN: alpha goes to 0 (transparent = content visible)."""
+        self.target = 0
         self.speed = speed
         self.callback = callback
         self._fading_out = False
 
     def fade_out(self, speed=5.0, callback=None):
-        self.target = 0
+        """Fade OUT: alpha goes to 255 (opaque = black screen)."""
+        self.target = 255
         self.speed = speed
         self.callback = callback
         self._fading_out = True
@@ -369,7 +371,8 @@ def generate_stone_texture(w: int, h: int, seed: int = 42) -> pygame.Surface:
     import random as _rng
     surf = pygame.Surface((w, h))
     rng = _rng.Random(seed)
-    surf.fill(STONE_BASE if 'STONE_BASE' in dir() else (28, 24, 32))
+    from ui_theme import STONE_BASE as _sb
+    surf.fill(_sb)
 
     # Noise blocks
     block = 8

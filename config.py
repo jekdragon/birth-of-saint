@@ -216,3 +216,4 @@ def calc_xp_for_level(level: int) -> int:
     else:
         return (XP_BASE + XP_INCREMENT_EARLY * 19 +
                 XP_INCREMENT_MID * 20 + XP_INCREMENT_LATE * (level - 40))
+

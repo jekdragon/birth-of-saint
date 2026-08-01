@@ -44,7 +44,7 @@ def extract_facts_from_code() -> dict:
     enemies_path = PROJECT_ROOT / "enemies.py"
     if enemies_path.exists():
         content = enemies_path.read_text(encoding="utf-8")
-        enemy_defs = re.findall(r"def create_(\w+)", content)
+        enemy_defs = re.findall(r'^\s+"(\w+)":\s*\{', content, re.MULTILINE)
         facts["enemy_types"] = enemy_defs
         facts["enemy_count"] = len(enemy_defs)
 
@@ -254,9 +254,15 @@ def run_evaluation(dry_run: bool = False):
     dataset.insert(items)
     print(f"Dataset created: {len(items)} items")
 
-    # Metrics
-    hallucination_metric = Hallucination(name="hallucination_check")
-    relevance_metric = AnswerRelevance(name="relevance_check")
+    # Metrics — using OpenRouter (DeepSeek free)
+    hallucination_metric = Hallucination(
+        name="hallucination_check",
+        model="openrouter/deepseek/deepseek-chat",
+    )
+    relevance_metric = AnswerRelevance(
+        name="relevance_check",
+        model="openrouter/deepseek/deepseek-chat",
+    )
 
     # Run evaluation
     print("\nRunning evaluation (may take a few minutes)...")
@@ -277,16 +283,15 @@ def run_evaluation(dry_run: bool = False):
 
     # Aggregate scores
     agg = result.aggregate_evaluation_scores()
-    for metric_name, scores in agg.items():
-        avg = sum(s.value for s in scores) / len(scores) if scores else 0
-        print(f"  {metric_name}: {avg:.2f}")
+    for metric_name, stats in agg.aggregated_scores.items():
+        print(f"  {metric_name}: mean={stats.mean:.2f}, min={stats.min:.2f}, max={stats.max:.2f}")
 
     # Save report
     report = {
         "experiment": "hallucination-scan-v1",
         "metrics": {
-            name: [s.value for s in scores]
-            for name, scores in agg.items()
+            name: {"mean": stats.mean, "min": stats.min, "max": stats.max}
+            for name, stats in agg.aggregated_scores.items()
         },
     }
     report_path = PROJECT_ROOT / "opik-eval-report.json"

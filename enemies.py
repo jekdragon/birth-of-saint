@@ -4,7 +4,7 @@
 """
 import math
 import pygame
-from config import WHITE, RED, DARK_RED, YELLOW, PURPLE, ICE_BLUE, GOLD
+from config import RED, DARK_RED, YELLOW, PURPLE, ICE_BLUE, GOLD, MAP_WIDTH, MAP_HEIGHT
 
 ENEMY_TYPES = {
     "neophyte": {
@@ -67,6 +67,7 @@ ENEMY_TYPES = {
         "damage": 0.7, "xp": 8, "score": 20,
         "radius": 14, "color": ICE_BLUE, "blood_color": (150, 200, 255),
         "phasing": True,  # проходит сквозь препятствия
+        "is_undead": True,
     },
     "gargoyle": {
         "name": "Горгулья",
@@ -83,6 +84,7 @@ ENEMY_TYPES = {
         "speed_base": 3.5, "speed_per_wave": 0.1,
         "damage": 0.4, "xp": 5, "score": 14,
         "radius": 10, "color": (60, 60, 80), "blood_color": (40, 40, 60),
+        "is_undead": True,
     },
     "cultist": {
         "name": "Культист",
@@ -120,6 +122,7 @@ class Enemy:
         self.color = t["color"]
         self.blood_color = t["blood_color"]
         self.is_boss = t.get("is_boss", False)
+        self.is_undead = t.get("is_undead", False)
 
         # Animator
         from sprites import SpriteAnimator, ENEMY_TO_TEMPLATE
@@ -138,23 +141,76 @@ class Enemy:
         self.hit_flash = 0.0
         self.stun_timer = 0.0
         self.death_fade = 0.0  # > 0 = fading out
+        self.freeze_frames = 0  # Hitstop: directional freeze on attacker+target
+        self.knockback_x = 0.0  # Knockback velocity
+        self.knockback_y = 0.0
+        # C3: Rune status effects
+        self.burn_timer = 0.0    # remaining burn duration (seconds)
+        self.burn_dps = 0.0      # burn damage per second
+        self.slow_timer = 0.0    # remaining slow duration
+        self.slow_factor = 1.0   # speed multiplier (1.0 = no slow)
+        self.frozen_timer = 0.0  # remaining freeze duration
 
-    def take_damage(self, amount: float) -> bool:
-        """Возвращает True если враг умер."""
+    def take_damage(self, amount: float, knockback_dir=None) -> bool:
+        """Возвращает True если враг умер. knockback_dir = (dx, dy) normalized."""
         self.hp -= amount
         self.hit_flash = 0.1
+        # Knockback (образец: kbx/kby)
+        if knockback_dir:
+            kb_strength = min(8.0, 3.0 + amount * 0.1)
+            self.knockback_x = knockback_dir[0] * kb_strength
+            self.knockback_y = knockback_dir[1] * kb_strength
         if self.hp <= 0:
             self.alive = False
             return True
         return False
 
+    def apply_slow(self, factor: float, duration: float) -> None:
+        """Замедление: factor=0.5 = половина скорости. Стакается по минимуму."""
+        self.slow_timer = max(self.slow_timer, duration)
+        self.slow_factor = min(self.slow_factor, factor)
+
+    def apply_freeze(self, duration: float) -> None:
+        """Заморозка: полная остановка движения."""
+        self.frozen_timer = max(self.frozen_timer, duration)
+
     def update(self, player_pos: pygame.Vector2, dt: float):
         if not self.alive:
+            return None
+
+        # Hitstop freeze — skip movement/animation, keep drawing
+        if self.freeze_frames > 0:
+            self.freeze_frames -= 1
+            if self.hit_flash > 0:
+                self.hit_flash -= dt
             return None
 
         # Стан - пропускаем движение
         if self.stun_timer > 0:
             self.stun_timer -= dt
+            return None
+
+        # Status effects: tick down timers
+        if self.frozen_timer > 0:
+            self.frozen_timer -= dt
+        if self.slow_timer > 0:
+            self.slow_timer -= dt
+            if self.slow_timer <= 0:
+                self.slow_factor = 1.0
+        # C3: Burn DOT — deal damage per second
+        if self.burn_timer > 0:
+            self.burn_timer -= dt
+            self.hp -= self.burn_dps * dt
+            if self.hp <= 0:
+                self.alive = False
+                return None
+            if self.burn_timer <= 0:
+                self.burn_dps = 0.0
+
+        # Frozen: skip all movement & attacks
+        if self.frozen_timer > 0:
+            if self.hit_flash > 0:
+                self.hit_flash -= dt
             return None
 
         # Рендж-атака (demon, cultist)
@@ -188,7 +244,8 @@ class Enemy:
         d = player_pos - self.pos
         if d.length() > 0:
             d = d.normalize()
-            self.pos += d * self.speed * 60 * dt
+            effective_speed = self.speed * self.slow_factor
+            self.pos += d * effective_speed * 60 * dt
 
             # Walk animation
             if abs(d.x) > abs(d.y):
@@ -197,6 +254,20 @@ class Enemy:
                 self.animator.set_state("walk_down" if d.y > 0 else "walk_up")
         else:
             self.animator.set_state("idle")
+        
+        # Knockback (образец: decayed per frame)
+        if self.knockback_x != 0 or self.knockback_y != 0:
+            self.pos.x += self.knockback_x
+            self.pos.y += self.knockback_y
+            self.knockback_x *= 0.85  # decay
+            self.knockback_y *= 0.85
+            if abs(self.knockback_x) < 0.1 and abs(self.knockback_y) < 0.1:
+                self.knockback_x = 0
+                self.knockback_y = 0
+
+        # Clamp to map bounds
+        self.pos.x = max(0, min(self.pos.x, MAP_WIDTH))
+        self.pos.y = max(0, min(self.pos.y, MAP_HEIGHT))
 
         self.animator.update(dt)
 
@@ -232,6 +303,22 @@ class Enemy:
             # Белая вспышка при ударе
             sprite = sprite.copy()
             sprite.fill((255, 255, 255), special_flags=pygame.BLEND_ADD)
+        elif self.freeze_frames > 0:
+            # Голубой оттенок во время hitstop
+            sprite = sprite.copy()
+            sprite.fill((80, 140, 255), special_flags=pygame.BLEND_ADD)
+        elif self.frozen_timer > 0:
+            # Ярко-голубой при заморозке
+            sprite = sprite.copy()
+            sprite.fill((60, 120, 255), special_flags=pygame.BLEND_ADD)
+        elif self.slow_timer > 0:
+            # Тускло-голубой при замедлении
+            sprite = sprite.copy()
+            sprite.fill((40, 80, 160), special_flags=pygame.BLEND_ADD)
+        elif self.burn_timer > 0:
+            # Оранжевый оттенок при горении
+            sprite = sprite.copy()
+            sprite.fill((80, 30, 0), special_flags=pygame.BLEND_ADD)
         sprite_rect = sprite.get_rect(center=(sx, sy))
         surface.blit(sprite, sprite_rect)
 

@@ -6,7 +6,7 @@
 import random
 import math
 import pygame
-from config import MAP_WIDTH, MAP_HEIGHT, CENTER_X, CENTER_Y, TILE_SIZE
+from config import CENTER_X, CENTER_Y
 
 
 # Цвета Собора

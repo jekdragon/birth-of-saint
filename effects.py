@@ -5,7 +5,7 @@ Screen shake (trauma-based directional), flash, grid rendering.
 import pygame
 import random
 import math
-from config import WIDTH, HEIGHT, MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, BIOMES, CENTER_X, CENTER_Y
+from config import WIDTH, HEIGHT, TILE_SIZE, BIOMES, CENTER_X, CENTER_Y
 
 
 class ScreenShake:

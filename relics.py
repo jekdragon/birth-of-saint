@@ -6,7 +6,7 @@
 import random
 import math
 import pygame
-from config import MAP_WIDTH, MAP_HEIGHT, WHITE, GOLD, RED, BLUE, GREEN, PURPLE, ICE_BLUE, YELLOW
+from config import MAP_WIDTH, MAP_HEIGHT, WHITE, GOLD, RED, BLUE, PURPLE, ICE_BLUE, YELLOW
 
 
 # === ОПРЕДЕЛЕНИЯ РЕЛИКВИЙ ===

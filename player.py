@@ -290,6 +290,7 @@ class Player:
             amount *= 1.0 - 0.1 * armor_lvl
             amount = max(0.1, amount)  # минимум 0.1 урона
         self.hp -= amount
+        self.invuln_timer = 0.75  # i-frames после удара (45 кадров / 60 fps)
         if self.hp <= 0:
             self.hp = 0
             self.alive = False

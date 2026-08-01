@@ -7,7 +7,7 @@ import random
 import math
 import pygame
 import os
-from config import MAP_WIDTH, MAP_HEIGHT, BIOMES, CENTER_X, CENTER_Y, TILE_SIZE
+from config import BIOMES, CENTER_X, CENTER_Y
 
 
 OBSTACLE_TYPES = {

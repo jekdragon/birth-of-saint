@@ -4,8 +4,8 @@
 """
 import math
 import pygame
-from config import calc_damage_mult, calc_cooldown_mult, calc_area_mult
-from projectiles import Projectile, Pulse, make_damage_number, floating_numbers
+from config import RUNE_SLOT_LEVELS
+from projectiles import Projectile, floating_numbers
 
 WEAPON_DEFS = {
     "whip": {
@@ -128,6 +128,80 @@ class Weapon:
         self.level = 1
         self.timer = 0.0
         self.evolved = False
+        # C3: Rune slots (3 slots, unlock at RUNE_SLOT_LEVELS)
+        self.rune_slots = [None, None, None]
+
+    def get_max_rune_slots(self) -> int:
+        """Сколько слотов рун открыто на текущем уровне оружия."""
+        count = 0
+        for req_level in RUNE_SLOT_LEVELS:
+            if self.level >= req_level:
+                count += 1
+        return count
+
+    def socket_rune(self, rune_type: str) -> bool:
+        """Вставить руну в первый свободный слот. True = успех."""
+        max_slots = self.get_max_rune_slots()
+        for i in range(max_slots):
+            if self.rune_slots[i] is None:
+                self.rune_slots[i] = rune_type
+                return True
+        return False
+
+    def get_rune_count(self, rune_type: str) -> int:
+        """Сколько рун данного типа установлено."""
+        max_slots = self.get_max_rune_slots()
+        return sum(1 for r in self.rune_slots[:max_slots] if r == rune_type)
+
+    def get_active_runes(self) -> list:
+        """Список активных (установленных в открытых слотах) рун."""
+        max_slots = self.get_max_rune_slots()
+        return [r for r in self.rune_slots[:max_slots] if r is not None]
+
+    def apply_rune_on_hit(self, damage: float, enemy, player, particles=None) -> float:
+        """Применить эффекты рун при попадании. Возвращает итоговый урон."""
+        max_slots = self.get_max_rune_slots()
+        active = [r for r in self.rune_slots[:max_slots] if r is not None]
+        if not active:
+            return damage
+
+        actual_damage = damage
+
+        # Holy: +50% урон по нежити (мультипликативно за каждую руну)
+        holy_count = sum(1 for r in active if r == "holy")
+        if holy_count > 0 and getattr(enemy, 'is_undead', False):
+            actual_damage *= (1.5 ** holy_count)
+
+        # Fire: горение 2% урона/сек на 3с (мультипликативно)
+        fire_count = sum(1 for r in active if r == "fire")
+        if fire_count > 0:
+            burn_dps = actual_damage * 0.02 * (1.3 ** (fire_count - 1))
+            enemy.burn_timer = 3.0
+            enemy.burn_dps = max(getattr(enemy, 'burn_dps', 0), burn_dps)
+
+        # Ice: замедление 30% на 2с (мультипликативно)
+        ice_count = sum(1 for r in active if r == "ice")
+        if ice_count > 0:
+            slow_pct = 1.0 - (0.7 ** ice_count)  # 1 rune=30%, 2=51%, 3=66%
+            enemy.slow_timer = 2.0
+            enemy.slow_factor = min(getattr(enemy, 'slow_factor', 1.0), 1.0 - slow_pct)
+
+        # Shadow: вампиризм 5% урона (мультипликативно)
+        shadow_count = sum(1 for r in active if r == "shadow")
+        if shadow_count > 0 and player:
+            heal = actual_damage * 0.05 * (1.3 ** (shadow_count - 1))
+            player.heal(heal)
+
+        # Lightning: цепь — урон по N доп. целям (50% от основного урона)
+        lightning_count = sum(1 for r in active if r == "lightning")
+        if lightning_count > 0 and enemy.alive:
+            chain_targets = lightning_count  # 1 руна = 1 цель, 2 = 2 цели
+            chain_dmg = actual_damage * 0.5
+            # Цепь обрабатывается в вызывающем коде (weapon update или main.py)
+            enemy._chain_targets = chain_targets
+            enemy._chain_dmg = chain_dmg
+
+        return actual_damage
 
     def calc_damage(self, player) -> tuple:
         """Возвращает (damage, is_crit)."""
@@ -147,7 +221,7 @@ class Weapon:
         if self.level < 8:
             self.level += 1
 
-    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers_unused, dt):
+    def update(self, player, enemies, projectiles, pulses, particles, dt):
         """Переопределяется в подклассах."""
         pass
 
@@ -172,13 +246,17 @@ class WhipWeapon(Weapon):
         super().__init__("whip")
         self.hit_set = set()
 
-    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers_unused, dt):
+    def update(self, player, enemies, projectiles, pulses, particles, dt):
         self.timer += dt
         d = self.defn
         cd = max(d["cd_min"], d["cooldown_base"] - self.level * d["cd_reduction"]) * player.cooldown_mult
 
         if self.timer >= cd:
             self.timer = 0
+            alive = [e for e in enemies if e.alive]
+            if not alive:
+                self.timer = cd / 2  # half-cooldown retry
+                return
             length = (d["length_base"] + self.level * d["length_per_lvl"]) * player.area_mult
             damage = (d["damage_base"] + self.level * d["damage_per_lvl"]) * player.damage_mult
             if self.evolved:
@@ -193,7 +271,9 @@ class WhipWeapon(Weapon):
             direction = 1 if side.x >= 0 else -1
             pulses.append(WhipSweep(player.pos.x, player.pos.y, direction, d["color"], length))
 
+            import random
             self.hit_set.clear()
+            hit_enemies = []
             for e in enemies:
                 if not e.alive:
                     continue
@@ -209,19 +289,33 @@ class WhipWeapon(Weapon):
                     if diff > math.pi:
                         diff = 2 * math.pi - diff
                     if diff < math.pi / 2:
-                        killed = e.take_damage(damage)
-                        floating_numbers.spawn_damage(e.pos.x, e.pos.y, damage, d["color"], player)
-                        for _ in range(4):
-                            particles.append(Particle(e.pos.x, e.pos.y, d["color"]))
+                        is_crit = random.random() < player.crit_chance
+                        crit_mult = 2.0 if is_crit else 1.0
+                        raw_dmg = damage * crit_mult
+                        # C3: Apply rune effects
+                        actual_dmg = self.apply_rune_on_hit(raw_dmg, e, player)
+                        killed = e.take_damage(actual_dmg)
+                        floating_numbers.spawn_damage(e.pos.x, e.pos.y, actual_dmg, d["color"], is_crit)
+                        # A3: Whip = light tier hit burst
+                        emit_hit_burst(particles, e.pos.x, e.pos.y,
+                                       "light", d["color"])
                         if killed and self.evolved:
                             player.heal(2)
+                        hit_enemies.append((e, is_crit))
+            # Hitstop: freeze first and last enemy in sweep (not every enemy)
+            if hit_enemies:
+                freeze = 8 if hit_enemies[0][1] else 4
+                hit_enemies[0][0].freeze_frames = freeze
+                if len(hit_enemies) > 1:
+                    freeze_last = 8 if hit_enemies[-1][1] else 4
+                    hit_enemies[-1][0].freeze_frames = freeze_last
 
 
 class FireWeapon(Weapon):
     def __init__(self):
         super().__init__("fire")
 
-    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers_unused, dt):
+    def update(self, player, enemies, projectiles, pulses, particles, dt):
         self.timer += dt
         d = self.defn
         cd = max(d["cd_min"], d["cooldown_base"] - self.level * d["cd_reduction"]) * player.cooldown_mult
@@ -233,6 +327,7 @@ class FireWeapon(Weapon):
 
             alive = [e for e in enemies if e.alive]
             if not alive:
+                self.timer = cd / 2  # half-cooldown retry (образец)
                 return
 
             targets = sorted(alive, key=lambda e: (e.pos - player.pos).length_squared())[:n]
@@ -255,6 +350,10 @@ class FireWeapon(Weapon):
                     explode_dmg=damage * 0.5 if explosive else 0,
                     explode_r=65 * player.area_mult if explosive else 0,
                 ))
+                # C3: Attach rune data to projectile
+                active_runes = self.get_active_runes()
+                if active_runes:
+                    projectiles[-1].rune_slots = active_runes
 
 
 class HaloWeapon(Weapon):
@@ -263,7 +362,7 @@ class HaloWeapon(Weapon):
         self.angle = 0.0
         self.hit_cds = {}  # enemy_id -> timer
 
-    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers_unused, dt):
+    def update(self, player, enemies, projectiles, pulses, particles, dt):
         d = self.defn
         n = d["orbit_base"] + (self.level - 1) // 2 + player.projectiles_bonus
         radius = (d["radius_base"] + self.level * d["radius_per_lvl"]) * player.area_mult
@@ -304,9 +403,12 @@ class HaloWeapon(Weapon):
                     dy = e.pos.y - orb_pos.y
                     R = e.radius + 14
                     if dx * dx + dy * dy < R * R:
-                        e.take_damage(damage)
+                        # C3: Apply rune effects
+                        actual_dmg = self.apply_rune_on_hit(damage, e, player)
+                        e.take_damage(actual_dmg)
                         self.hit_cds[eid] = hit_cd
-                        damage_numbers.append(DamageNumber(e.pos.x, e.pos.y, damage, d["color"]))
+                        floating_numbers.spawn_damage(e.pos.x, e.pos.y, actual_dmg, d["color"])
+                        e.freeze_frames = 3  # light hitstop on orbit contact
                         if self.evolved and e.alive:
                             # Burn
                             pass
@@ -344,7 +446,7 @@ class RosaryWeapon(Weapon):
         super().__init__("rosary")
         self.boomerangs = []
 
-    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers_unused, dt):
+    def update(self, player, enemies, projectiles, pulses, particles, dt):
         d = self.defn
         speed = d["speed_base"] + self.level * d["speed_per_lvl"]
         max_range = d["range_base"] + self.level * d["range_per_lvl"]
@@ -373,10 +475,13 @@ class RosaryWeapon(Weapon):
                     dx = e.pos.x - b["pos"].x
                     dy = e.pos.y - b["pos"].y
                     if dx * dx + dy * dy < (16 + e.radius) ** 2:
-                        e.take_damage(damage)
+                        # C3: Apply rune effects
+                        actual_dmg = self.apply_rune_on_hit(damage, e, player)
+                        e.take_damage(actual_dmg)
                         b["hit_set"].add(id(e))
                         dmg_mult = 2.0 if (self.evolved and b["returning"]) else 1.0
-                        damage_numbers.append(DamageNumber(e.pos.x, e.pos.y, damage * dmg_mult, d["color"]))
+                        floating_numbers.spawn_damage(e.pos.x, e.pos.y, int(actual_dmg * dmg_mult), d["color"])
+                        e.freeze_frames = 4  # hitstop on boomerang hit
 
         self.boomerangs = [b for b in self.boomerangs if b["alive"]]
 
@@ -386,19 +491,21 @@ class RosaryWeapon(Weapon):
         if self.timer >= cd_ticks:
             self.timer = 0
             alive = [e for e in enemies if e.alive]
-            if alive:
-                closest = min(alive, key=lambda e: (e.pos - player.pos).length_squared())
-                direction = closest.pos - player.pos
-                if direction.length() > 0:
-                    direction = direction.normalize()
-                self.boomerangs.append({
-                    "pos": player.pos.copy(),
-                    "vel": direction * speed,
-                    "traveled": 0,
-                    "returning": False,
-                    "hit_set": set(),
-                    "alive": True,
-                })
+            if not alive:
+                self.timer = cd_ticks / 2  # half-cooldown retry
+                return
+            closest = min(alive, key=lambda e: (e.pos - player.pos).length_squared())
+            direction = closest.pos - player.pos
+            if direction.length() > 0:
+                direction = direction.normalize()
+            self.boomerangs.append({
+                "pos": player.pos.copy(),
+                "vel": direction * speed,
+                "traveled": 0,
+                "returning": False,
+                "hit_set": set(),
+                "alive": True,
+            })
 
     def draw(self, surface, cam_x, cam_y, player):
         """Отрисовка бумерангов."""
@@ -426,7 +533,7 @@ class LightningWeapon(Weapon):
     def __init__(self):
         super().__init__("lightning")
 
-    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers_unused, dt):
+    def update(self, player, enemies, projectiles, pulses, particles, dt):
         self.timer += dt
         d = self.defn
         cd = max(d["cd_min"], d["cooldown_base"] - self.level * d["cd_reduction"]) * player.cooldown_mult
@@ -437,30 +544,49 @@ class LightningWeapon(Weapon):
             self.timer = 0
             alive = [e for e in enemies if e.alive]
             if not alive:
+                self.timer = cd / 2  # half-cooldown retry (образец)
                 return
             # Бьём по случайному врагу в радиусе
             import random
             target = random.choice(alive)
-            # AoE вокруг цели
-            for e in enemies:
-                if not e.alive:
-                    continue
-                dx = e.pos.x - target.pos.x
-                dy = e.pos.y - target.pos.y
-                if dx * dx + dy * dy < (aoe + e.radius) ** 2:
-                    e.take_damage(damage)
-                    floating_numbers.spawn_damage(e.pos.x, e.pos.y, damage, d["color"], player)
+            is_crit = random.random() < player.crit_chance
+            crit_mult = 2.0 if is_crit else 1.0
 
-            # Визуал: молния
+            # REF-10: Capture values for delayed strike callback
+            _strike_x, _strike_y = target.pos.x, target.pos.y
+            _enemies = enemies
+            _aoe = aoe
+            _dmg = damage * crit_mult
+            _color = d["color"]
+            _is_crit = is_crit
+            _player = player
+            _floating = floating_numbers
+            _weapon = self
+
+            def on_strike():
+                for e in _enemies:
+                    if not e.alive:
+                        continue
+                    dx = e.pos.x - _strike_x
+                    dy = e.pos.y - _strike_y
+                    if dx * dx + dy * dy < (_aoe + e.radius) ** 2:
+                        actual_dmg = _weapon.apply_rune_on_hit(_dmg, e, _player)
+                        e.take_damage(actual_dmg)
+                        _floating.spawn_damage(e.pos.x, e.pos.y, actual_dmg, _color, _is_crit)
+                        e.apply_slow(0.5, 2.0)  # 50% speed for 2s
+                        # Hitstop: primary target gets 6-8 frames, AoE targets get 4
+                        e.freeze_frames = 8 if _is_crit else 6
+
+            # REF-10: Bolt with telegraph (0.3s warning ring) then strike
             from projectiles import LightningBolt
-            pulses.append(LightningBolt(target.pos.x, target.pos.y, aoe, d["color"]))
+            pulses.append(LightningBolt(target.pos.x, target.pos.y, aoe, d["color"], on_strike=on_strike))
 
 
 class PrayerWeapon(Weapon):
     def __init__(self):
         super().__init__("prayer")
 
-    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers_unused, dt):
+    def update(self, player, enemies, projectiles, pulses, particles, dt):
         self.timer += dt
         d = self.defn
         cd = max(d["cd_min"], d["cooldown_base"] - self.level * d["cd_reduction"]) * player.cooldown_mult
@@ -469,14 +595,21 @@ class PrayerWeapon(Weapon):
 
         if self.timer >= cd:
             self.timer = 0
+            alive = [e for e in enemies if e.alive]
+            if not alive:
+                self.timer = cd / 2  # half-cooldown retry
+                return
             for e in enemies:
                 if not e.alive:
                     continue
                 dx = e.pos.x - player.pos.x
                 dy = e.pos.y - player.pos.y
                 if dx * dx + dy * dy < (radius + e.radius) ** 2:
-                    e.take_damage(damage)
-                    damage_numbers.append(DamageNumber(e.pos.x, e.pos.y, damage, d["color"]))
+                    # C3: Apply rune effects
+                    actual_dmg = self.apply_rune_on_hit(damage, e, player)
+                    e.take_damage(actual_dmg)
+                    floating_numbers.spawn_damage(e.pos.x, e.pos.y, actual_dmg, d["color"])
+                    e.freeze_frames = 4  # hitstop on ring hit
 
             from projectiles import RingWave
             pulses.append(RingWave(player.pos.x, player.pos.y, radius, d["color"], duration=0.3))
@@ -488,7 +621,7 @@ class IncenseWeapon(Weapon):
         super().__init__("incense")
         self.angle = 0.0
 
-    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers_unused, dt):
+    def update(self, player, enemies, projectiles, pulses, particles, dt):
         d = self.defn
         count = int(d["count_base"] + self.level * d["count_per_lvl"])
         radius = (d["radius_base"] + self.level * d["radius_per_lvl"]) * player.area_mult
@@ -510,9 +643,14 @@ class IncenseWeapon(Weapon):
                 dx = e.pos.x - ox
                 dy = e.pos.y - oy
                 if dx * dx + dy * dy < (15 + e.radius) ** 2:
-                    e.take_damage(damage * dt * 5)  # DPS
+                    # C3: Apply rune effects (once per hit cycle, not every frame)
                     if int(self.angle * 10) % 5 == 0:
-                        damage_numbers.append(DamageNumber(e.pos.x, e.pos.y, damage, d["color"]))
+                        actual_dmg = self.apply_rune_on_hit(damage, e, player)
+                    else:
+                        actual_dmg = damage
+                    e.take_damage(actual_dmg * dt * 5)  # DPS
+                    if int(self.angle * 10) % 5 == 0:
+                        floating_numbers.spawn_damage(e.pos.x, e.pos.y, actual_dmg, d["color"])
 
     def draw(self, surface, cam_x, cam_y, player):
         """Отрисовка кадил."""
@@ -548,7 +686,7 @@ class CrossWeapon(Weapon):
     def __init__(self):
         super().__init__("cross")
 
-    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers_unused, dt):
+    def update(self, player, enemies, projectiles, pulses, particles, dt):
         self.timer += dt
         d = self.defn
         cd = max(d["cd_min"], d["cooldown_base"] - self.level * d["cd_reduction"]) * player.cooldown_mult
@@ -559,6 +697,10 @@ class CrossWeapon(Weapon):
 
         if self.timer >= cd:
             self.timer = 0
+            alive = [e for e in enemies if e.alive]
+            if not alive:
+                self.timer = cd / 2  # half-cooldown retry
+                return
             pierce = 3 if self.evolved else (1 + player.projectiles_bonus)
             projectiles.append(Projectile(
                 player.pos.x, player.pos.y,
@@ -568,6 +710,10 @@ class CrossWeapon(Weapon):
                 color=d["color"],
                 pierce=pierce
             ))
+            # C3: Attach rune data to projectile
+            active_runes = self.get_active_runes()
+            if active_runes:
+                projectiles[-1].rune_slots = active_runes
 
 
 class BellWeapon(Weapon):
@@ -575,7 +721,7 @@ class BellWeapon(Weapon):
     def __init__(self):
         super().__init__("bell")
 
-    def update(self, player, enemies, projectiles, pulses, particles, damage_numbers_unused, dt):
+    def update(self, player, enemies, projectiles, pulses, particles, dt):
         self.timer += dt
         d = self.defn
         cd = max(d["cd_min"], d["cooldown_base"] - self.level * d["cd_reduction"]) * player.cooldown_mult
@@ -587,16 +733,24 @@ class BellWeapon(Weapon):
 
         if self.timer >= cd:
             self.timer = 0
+            alive = [e for e in enemies if e.alive]
+            if not alive:
+                self.timer = cd / 2  # half-cooldown retry
+                return
             for e in enemies:
                 if not e.alive:
                     continue
                 dx = e.pos.x - player.pos.x
                 dy = e.pos.y - player.pos.y
                 if dx * dx + dy * dy < (radius + e.radius) ** 2:
-                    e.take_damage(damage)
+                    # C3: Apply rune effects
+                    actual_dmg = self.apply_rune_on_hit(damage, e, player)
+                    e.take_damage(actual_dmg)
                     if self.evolved:
                         e.stun_timer = 1.0
-                    damage_numbers.append(DamageNumber(e.pos.x, e.pos.y, damage, d["color"]))
+                    floating_numbers.spawn_damage(e.pos.x, e.pos.y, actual_dmg, d["color"])
+                    e.freeze_frames = 6  # heavy hitstop on bell strike
+                    e.apply_freeze(0.8)  # status freeze (образец)
 
             from projectiles import RingWave
             pulses.append(RingWave(player.pos.x, player.pos.y, radius, d["color"], duration=0.5))
@@ -622,5 +776,4 @@ def create_weapon(weapon_id: str) -> Weapon:
     return Weapon(weapon_id)
 
 
-# Нужен для DamageNumber и Particle
-from projectiles import DamageNumber, Particle
+from projectiles import emit_hit_burst

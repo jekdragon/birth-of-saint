@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+"""
+Git commit-msg hook for Birth of the Saint.
+Enforces conventional commit format:
+  type(scope): description
+  
+Valid types: feat, fix, chore, docs, test, refactor, auto, perf, style, ci, build
+Auto-commits from Hermes (prefix "auto(") are always allowed.
+"""
+import sys
+import re
+import os
+
+RED = "\033[91m"
+YELLOW = "\033[93m"
+RESET = "\033[0m"
+
+VALID_TYPES = r"(feat|fix|chore|docs|test|refactor|auto|perf|style|ci|build)"
+PATTERN = re.compile(
+    rf"^{VALID_TYPES}(\(.+\))?: .+"
+)
+
+def main():
+    msg_file = sys.argv[1] if len(sys.argv) > 1 else None
+    if not msg_file or not os.path.exists(msg_file):
+        return 0
+
+    with open(msg_file, "r", encoding="utf-8") as f:
+        msg = f.read().strip()
+
+    # Skip empty messages (shouldn't happen but be safe)
+    if not msg:
+        return 0
+
+    # Skip comment lines (git uses # for comments)
+    first_line = msg.split("\n")[0].strip()
+    if first_line.startswith("#"):
+        return 0
+
+    # Auto-commits from Hermes are always allowed
+    if first_line.startswith("auto("):
+        return 0
+
+    # Validate conventional commit format
+    if not PATTERN.match(first_line):
+        print(f"{RED}✗ Invalid commit message format:{RESET}")
+        print(f"  Got:      \"{first_line}\"")
+        print(f"  Expected: type(scope): description")
+        print(f"  Types:    feat, fix, chore, docs, test, refactor, auto, perf, style, ci, build")
+        print(f"  Example:  feat(enemies): add slow/freeze status effects")
+        print(f"\n  Use {YELLOW}--no-verify{RESET} to bypass this check.")
+        return 1
+
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())

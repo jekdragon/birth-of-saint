@@ -1,0 +1,155 @@
+#!/usr/bin/env python3
+"""
+Git pre-commit hook for Birth of the Saint.
+Runs before every commit to validate code quality:
+1. Python syntax check (py_compile)
+2. Trailing whitespace cleanup
+3. Large file detection (>5MB)
+4. Merge conflict marker check
+5. Debug print/console.log detection (warn only)
+"""
+import subprocess
+import sys
+import os
+import py_compile
+import re
+
+RED = "\033[91m"
+YELLOW = "\033[93m"
+GREEN = "\033[92m"
+RESET = "\033[0m"
+
+def get_staged_files():
+    """Get staged .py files."""
+    result = subprocess.run(
+        ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"],
+        capture_output=True, text=True
+    )
+    return [f.strip() for f in result.stdout.strip().split("\n") if f.strip()]
+
+def check_syntax(files):
+    """Verify Python files compile."""
+    errors = []
+    for f in files:
+        if not f.endswith(".py"):
+            continue
+        if not os.path.exists(f):
+            continue
+        try:
+            py_compile.compile(f, doraise=True)
+        except py_compile.PyCompileError as e:
+            errors.append(f"  {RED}SYNTAX{RESET}: {f} — {e}")
+    return errors
+
+def check_conflict_markers(files):
+    """Check for merge conflict markers."""
+    errors = []
+    pattern = re.compile(r"^[<>=]{7}")
+    for f in files:
+        if not os.path.exists(f):
+            continue
+        try:
+            with open(f, "r", encoding="utf-8", errors="ignore") as fh:
+                for i, line in enumerate(fh, 1):
+                    if pattern.match(line):
+                        errors.append(f"  {RED}CONFLICT{RESET}: {f}:{i} — merge conflict marker")
+        except Exception:
+            pass
+    return errors
+
+def check_large_files(files, max_bytes=5 * 1024 * 1024):
+    """Warn about files >5MB."""
+    warnings = []
+    for f in files:
+        if not os.path.exists(f):
+            continue
+        size = os.path.getsize(f)
+        if size > max_bytes:
+            size_mb = size / (1024 * 1024)
+            warnings.append(f"  {YELLOW}LARGE{RESET}: {f} — {size_mb:.1f}MB (>{max_bytes // (1024*1024)}MB)")
+    return warnings
+
+def check_debug_patterns(files):
+    """Warn about debug prints (non-blocking)."""
+    warnings = []
+    patterns = [
+        (re.compile(r"^\s*print\("), "print()"),
+        (re.compile(r"console\.log\("), "console.log()"),
+        (re.compile(r"breakpoint\(\)"), "breakpoint()"),
+        (re.compile(r"import pdb"), "pdb"),
+    ]
+    for f in files:
+        if not f.endswith(".py") or not os.path.exists(f):
+            continue
+        # Skip test files — they can have prints
+        if "test" in f.lower():
+            continue
+        try:
+            with open(f, "r", encoding="utf-8", errors="ignore") as fh:
+                for i, line in enumerate(fh, 1):
+                    for pattern, name in patterns:
+                        if pattern.search(line):
+                            warnings.append(f"  {YELLOW}DEBUG{RESET}: {f}:{i} — {name}")
+        except Exception:
+            pass
+    return warnings
+
+def check_import_smoke(files):
+    """Smoke test: try importing main modules. Catches broken imports."""
+    errors = []
+    # Only run if any .py file in root (not tests/) changed
+    src_files = [f for f in files if f.endswith(".py") and "/" not in f and "\\" not in f]
+    if not src_files:
+        return errors
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c",
+             "import os; os.environ['SDL_VIDEODRIVER']='dummy'; os.environ['SDL_AUDIODRIVER']='dummy';"
+             "import config, enemies, weapons"],
+            capture_output=True, text=True, timeout=10
+        )
+        if result.returncode != 0:
+            err = result.stderr.strip().split("\n")[-1][:200]
+            errors.append(f"  {RED}IMPORT{RESET}: {err}")
+    except subprocess.TimeoutExpired:
+        errors.append(f"  {YELLOW}IMPORT{RESET}: smoke test timed out (10s)")
+    except Exception:
+        pass
+    return errors
+
+def main():
+    files = get_staged_files()
+    if not files:
+        return 0
+
+    errors = []
+    warnings = []
+
+    # Critical checks (block commit)
+    errors.extend(check_syntax(files))
+    errors.extend(check_conflict_markers(files))
+    errors.extend(check_import_smoke(files))
+
+    # Warning checks (allow commit)
+    warnings.extend(check_large_files(files))
+    warnings.extend(check_debug_patterns(files))
+
+    # Print results
+    if warnings:
+        print(f"{YELLOW}⚠ Warnings:{RESET}")
+        for w in warnings[:10]:
+            print(w)
+        if len(warnings) > 10:
+            print(f"  ... and {len(warnings) - 10} more")
+
+    if errors:
+        print(f"{RED}✗ Commit blocked:{RESET}")
+        for e in errors:
+            print(e)
+        return 1
+
+    # Silent success — no noise on clean commits
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())

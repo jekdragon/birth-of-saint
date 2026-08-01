@@ -1,0 +1,45 @@
+{
+  "gold": 7777,
+  "total_runs": 42,
+  "best_wave": 15,
+  "best_time": 0,
+  "total_kills": 3000,
+  "powerups": {
+    "might": 0,
+    "sturdiness": 0,
+    "swiftness": 0,
+    "greed": 0,
+    "luck": 0,
+    "revive": 0
+  },
+  "unlocked_chars": [
+    "paladin",
+    "warrior"
+  ],
+  "unlocked_weapons": [
+    "fire",
+    "whip",
+    "halo",
+    "rosary"
+  ],
+  "achievements_done": [],
+  "selected_arcana": "vow_of_silence",
+  "banned_items": [
+    "fire"
+  ],
+  "ban_tokens": 0,
+  "enemy_kills": {},
+  "altar_level": {
+    "might_altar": 0,
+    "regen_altar": 0,
+    "magnet_altar": 0,
+    "luck_altar": 0
+  },
+  "weapon_archive": [],
+  "faction_rep": {
+    "angels": 0,
+    "demons": 0,
+    "humans": 0
+  },
+  "obelisks": []
+}

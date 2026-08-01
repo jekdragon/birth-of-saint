@@ -6,15 +6,25 @@ import asyncio
 import sys
 import traceback
 import pygame
-from config import WIDTH, HEIGHT, FPS, TITLE, MAP_WIDTH, MAP_HEIGHT, calc_xp_for_level
+from config import WIDTH, HEIGHT, FPS, TITLE, MAP_WIDTH, MAP_HEIGHT, calc_xp_for_level, RUNE_DEFS, RUNE_TYPES, ACHIEVEMENTS
+from game_logger import init_logger, get_logger, close_logger
 from player import Player, CHARACTERS
 from camera import Camera
 from wave_manager import WaveManager
 from xp_system import XPGem, LevelUpScreen
 from weapons import create_weapon
-from projectiles import DamageNumber, Particle, Pulse, Projectile, floating_numbers
-from hud import draw_hud
+from projectiles import Pulse, Projectile, floating_numbers, EvolutionGlow, emit_hit_burst, RingBurst, GoldCoin
+from hud import draw_hud, combo_register_kill, combo_edge_flash, spawn_achievement_toast
 from effects import ScreenShake, ScreenFlash, LowHPVignette, draw_grid
+
+
+def _hit_direction(from_pos, to_pos):
+    """Compute normalized direction vector from from_pos to to_pos.
+    Returns pygame.Vector2 or None if positions overlap."""
+    d = to_pos - from_pos
+    if d.length_squared() > 0:
+        return d.normalize()
+    return None
 from menu import MainMenu
 from enemies import ENEMY_TYPES
 from obstacles import generate_obstacles, preload_obstacle_sprites
@@ -23,6 +33,8 @@ from save_system import save_progress, load_progress
 from arcana import Arcana
 from relics import RelicManager, RELIC_DEFS
 from leaderboard import add_score, get_entries
+from scene_manager import SceneManager
+from scenes import SplashScene, TitleScene, GameScene, GameOverScene, LobbyScene, SettingsScene, BestiaryScene, CodexScene, RunPrepScene
 
 # Глобальные объекты
 screen = None
@@ -34,6 +46,58 @@ sound_mgr = None
 shake = ScreenShake()
 flash = ScreenFlash()
 vignette = LowHPVignette()
+
+
+class RunePickup:
+    """Руна на земле — подбирается игроком, вставляется в оружие."""
+    def __init__(self, x: float, y: float, rune_type: str):
+        self.pos = pygame.Vector2(x, y)
+        self.rune_type = rune_type
+        self.alive = True
+        self.attracting = False
+        self.timer = 0.0  # for pulsing animation
+        rdef = RUNE_DEFS[rune_type]
+        self.color = rdef["color"]
+        self.name = rdef["name"]
+        self.radius = 8
+
+    def update(self, player_pos: pygame.Vector2, pickup_range: float, dt: float):
+        self.timer += dt
+        dist = (self.pos - player_pos).length()
+        if dist < pickup_range * 1.5:  # runes have 1.5x pickup range
+            self.attracting = True
+        if self.attracting:
+            d = player_pos - self.pos
+            if d.length() > 0:
+                self.pos += d.normalize() * 10 * 60 * dt  # faster attraction
+            if dist < 15:
+                self.alive = False
+                return self.rune_type
+        return None
+
+    def draw(self, surface: pygame.Surface, cam_x: float, cam_y: float):
+        sx = int(self.pos.x - cam_x)
+        sy = int(self.pos.y - cam_y)
+        if sx < -20 or sx > 1044 or sy < -20 or sy > 788:
+            return
+        import math
+        # Pulsing glow
+        pulse = 0.6 + 0.4 * math.sin(self.timer * 4.0)
+        r, g, b = self.color
+        alpha = int(80 * pulse)
+        glow = pygame.Surface((32, 32), pygame.SRCALPHA)
+        pygame.draw.circle(glow, (r, g, b, alpha), (16, 16), 16)
+        surface.blit(glow, (sx - 16, sy - 16))
+        # Diamond shape
+        size = int(self.radius * (0.9 + 0.1 * pulse))
+        pygame.draw.polygon(surface, self.color, [
+            (sx, sy - size), (sx + size, sy),
+            (sx, sy + size), (sx - size, sy)
+        ])
+        pygame.draw.polygon(surface, (255, 255, 255), [
+            (sx, sy - size // 2), (sx + size // 2, sy),
+            (sx, sy + size // 2), (sx - size // 2, sy)
+        ])
 
 
 def init_pygame():
@@ -61,6 +125,8 @@ def init_sounds():
     try:
         from sounds import SoundManager
         sound_mgr = SoundManager()
+        import sound_manager
+        sound_manager.init(sound_mgr)
     except Exception:
         sound_mgr = None
     
@@ -74,6 +140,7 @@ def init_sounds():
 
 
 class Game:
+    """Основной игровой объект. Управляет игровым процессом."""
     def __init__(self):
         self.state = "menu"  # "menu", "playing", "levelup", "gameover", "lobby"
         self.menu = MainMenu()
@@ -89,9 +156,15 @@ class Game:
         self.gems = []
         self.particles = []
         self.pulses = []
+        self.evolution_glows = []
+        self.ring_bursts = []
         self.obstacles = []
+        self.rune_pickups = []  # C3: Rune pickups from bosses
+        self.gold_coins = []  # REF-8: Gold coin pickups
         self.elapsed = 0.0
         self._reaper_spawned = False
+        self._slowmo_frames = 0
+        self._ach_check_timer = 0.0  # REF-9: periodic achievement check
         self.relic_mgr = RelicManager()
         self.relics = []
         self.arcana_data = {}
@@ -108,8 +181,14 @@ class Game:
         self.gems = []
         self.particles = []
         self.pulses = []
+        self.evolution_glows = []
+        self.ring_bursts = []
+        self.rune_pickups = []  # C3: Rune pickups
+        self.gold_coins = []  # REF-8: Gold coin pickups
         self.elapsed = 0.0
         self._reaper_spawned = False
+        self._slowmo_frames = 0
+        self._ach_check_timer = 0.0  # REF-9: periodic achievement check
         self.relic_mgr.reset()
         self.relics = []
         # Стартовое оружие
@@ -184,6 +263,11 @@ class Game:
 
         self.elapsed += dt
 
+        # A4: Slowmo from combo — 25% speed for N frames
+        if self._slowmo_frames > 0:
+            dt *= 0.25
+            self._slowmo_frames -= 1
+
         # 1. Игрок
         self.player.handle_input(dt)
 
@@ -225,13 +309,13 @@ class Game:
             reaper.color = (50, 50, 50)
             reaper.blood_color = (100, 100, 100)
             self.enemies.append(reaper)
-            shake.trigger(15, 0.5)
+            shake.trigger(0.5, _hit_direction(self.player.pos, reaper.pos))
 
         # 3. Оружие
         pulses_before = len(self.pulses)
         for w in self.player.weapons:
             w.update(self.player, self.enemies, self.projectiles,
-                     self.pulses, self.particles, floating_numbers, dt)
+                     self.pulses, self.particles, dt)
 
         # Screen shake + attack animation при атаках оружия
         if len(self.pulses) > pulses_before:
@@ -241,11 +325,11 @@ class Game:
             last_pulse = self.pulses[-1]
             pulse_type = type(last_pulse).__name__
             if pulse_type == "WhipSweep":
-                shake.trigger(2, 0.05)
+                shake.trigger(0.05)
             elif pulse_type == "LightningBolt":
-                shake.trigger(5, 0.15)
+                shake.trigger(0.12)
             elif pulse_type == "RingWave":
-                shake.trigger(4, 0.1)
+                shake.trigger(0.1)
 
         # 4. Враги
         enemy_speed_mult = self.arcana_data.get("enemy_speed_mult", 1.0)
@@ -281,13 +365,13 @@ class Game:
                     if sound_mgr:
                         sound_mgr.play("player_hit")
                     flash.trigger()
-                    shake.trigger(4, 0.1)
+                    shake.trigger(0.08, _hit_direction(self.player.pos, e.pos))
 
                 # Fanatic explode
                 if e.explode_radius > 0 and e.explode_damage > 0:
                     self.player.take_damage(e.explode_damage)
                     e.alive = False
-                    shake.trigger(8, 0.2)
+                    shake.trigger(0.25, _hit_direction(self.player.pos, e.pos))
 
         # 5. Снаряды
         for p in self.projectiles:
@@ -308,11 +392,23 @@ class Game:
 
                         floating_numbers.spawn_damage(
                             e.pos.x, e.pos.y, p.damage, p.color)
-                        for _ in range(3):
-                            self.particles.append(Particle(e.pos.x, e.pos.y, p.color))
+                        # A3: Tiered hit particles
+                        hit_tier = "heavy" if e.is_boss else "medium" if e.radius >= 22 else "light"
+                        emit_hit_burst(self.particles, e.pos.x, e.pos.y,
+                                       hit_tier, p.color,
+                                       hit_dir=_hit_direction(p.pos, e.pos))
+
+                        # Hitstop on projectile hit (light: 3 frames)
+                        e.freeze_frames = 3
 
                         if killed:
                             e._on_killed_called = True
+                            # A3: Kill = crit burst + ring
+                            emit_hit_burst(self.particles, e.pos.x, e.pos.y,
+                                           "crit", (255, 220, 100))
+                            self.ring_bursts.append(
+                                RingBurst(e.pos.x, e.pos.y,
+                                          radius=45, color=e.blood_color))
                             self.on_enemy_killed(e)
 
                         if p.pierce <= 0:
@@ -321,8 +417,9 @@ class Game:
                             if p.explosive:
                                 # Визуал взрыва
                                 self.pulses.append(Pulse(p.pos.x, p.pos.y, p.explode_r, p.color, duration=0.3))
-                                for _ in range(8):
-                                    self.particles.append(Particle(p.pos.x, p.pos.y, p.color, speed=4.0, lifetime=0.3))
+                                # A3: Explosive = medium burst
+                                emit_hit_burst(self.particles, p.pos.x, p.pos.y,
+                                               "medium", p.color)
                                 for e2 in self.enemies:
                                     if not e2.alive or e2 is e:
                                         continue
@@ -332,6 +429,7 @@ class Game:
                                         e2.take_damage(p.explode_dmg)
                                         floating_numbers.spawn_damage(
                                             e2.pos.x, e2.pos.y, p.explode_dmg, p.color)
+                                        e2.freeze_frames = 3  # hitstop on explosion
                             break
                         else:
                             p.pierce -= 1
@@ -346,7 +444,7 @@ class Game:
                     if sound_mgr:
                         sound_mgr.play("player_hit")
                     flash.trigger()
-                    shake.trigger(3, 0.08)
+                    shake.trigger(0.08, _hit_direction(self.player.pos, p.pos))
                     floating_numbers.spawn_damage(
                         self.player.pos.x, self.player.pos.y, p.damage, p.color)
 
@@ -384,6 +482,43 @@ class Game:
                     sound_mgr.play("gem_pickup")
         self.relics = [r for r in self.relics if r.alive]
 
+        # 6.6 C3: Rune pickups — подбор + вставка в оружие
+        for rp in self.rune_pickups:
+            if not rp.alive:
+                continue
+            rune_type = rp.update(self.player.pos, self.player.pickup_range, dt)
+            if rune_type:
+                # Auto-socket into first weapon with empty slot
+                socketed = False
+                for w in self.player.weapons:
+                    if w.socket_rune(rune_type):
+                        socketed = True
+                        from hud import spawn_toast
+                        spawn_toast(f"{RUNE_DEFS[rune_type]['name']} -> {w.name}", RUNE_DEFS[rune_type]["color"])
+                        if sound_mgr:
+                            sound_mgr.play("gem_pickup")
+                        break
+                if not socketed:
+                    from hud import spawn_toast
+                    spawn_toast("Все слоты рун заполнены!", (150, 150, 150))
+                    if sound_mgr:
+                        sound_mgr.play("ui_back")
+        self.rune_pickups = [rp for rp in self.rune_pickups if rp.alive]
+
+        # 6.7 REF-8: Gold coin pickups
+        from config import COIN_MAGNET_RANGE
+        for coin in self.gold_coins:
+            if not coin.alive:
+                continue
+            collected = coin.update(self.player.pos, COIN_MAGNET_RANGE, dt)
+            if collected > 0:
+                gold_gain = int(collected * self.player.gold_mult)
+                self.player.gold += gold_gain
+                floating_numbers.spawn_xp(coin.pos.x, coin.pos.y, gold_gain)
+                if sound_mgr:
+                    sound_mgr.play("gem_pickup")
+        self.gold_coins = [c for c in self.gold_coins if c.alive]
+
         # 7. Убитые враги → гемы
         dead_enemies = [e for e in self.enemies if not e.alive]
         for e in dead_enemies:
@@ -394,12 +529,41 @@ class Game:
                 e._gem_dropped = True
                 self.gems.append(XPGem(e.pos.x, e.pos.y, e.xp))
                 self.player.kills += 1
-                self.player.gold += int(e.score * 0.1 * self.meta.get_powerup_bonus("greed") * self.player.gold_mult)
+                # REF-8: Replace auto-gold with physical coin drops
+                import random as _r
+                from config import COIN_DROP_CHANCE, COIN_VALUE
+                drop_chance = COIN_DROP_CHANCE * self.meta.get_powerup_bonus("greed")
+                if e.is_boss:
+                    # Boss = coin rain (5-10 coins)
+                    for _ in range(_r.randint(5, 10)):
+                        ox = _r.uniform(-40, 40)
+                        oy = _r.uniform(-40, 40)
+                        self.gold_coins.append(
+                            GoldCoin(e.pos.x + ox, e.pos.y + oy, value=COIN_VALUE * _r.randint(3, 8)))
+                elif _r.random() < drop_chance:
+                    self.gold_coins.append(
+                        GoldCoin(e.pos.x, e.pos.y, value=COIN_VALUE))
 
-                # Death particles (кровь)
+                # C2: Per-type kill tracking for codex
+                etype = getattr(e, 'type_id', None)
+                if etype:
+                    self.meta.enemy_kills[etype] = self.meta.enemy_kills.get(etype, 0) + 1
+
+                # A4: Combo counter — register kill, apply juice
+                juice = combo_register_kill()
+                if juice["slowmo"] > 0:
+                    self._slowmo_frames = juice["slowmo"]
+                if juice.get("label") == "MASSACRE":
+                    flash.trigger(color=(255, 255, 255), duration=0.3)
+
+                # A3: Death particles — melee kills only
                 blood_color = getattr(e, 'blood_color', (200, 50, 50))
-                for _ in range(6):
-                    self.particles.append(Particle(e.pos.x, e.pos.y, blood_color, speed=3.0, lifetime=0.4))
+                if not getattr(e, '_on_killed_called', False):
+                    emit_hit_burst(self.particles, e.pos.x, e.pos.y,
+                                   "crit", (255, 220, 100))
+                    self.ring_bursts.append(
+                        RingBurst(e.pos.x, e.pos.y,
+                                  radius=45, color=blood_color))
 
         # Очистка + деспавн далёких врагов
         from config import DESPAWN_DISTANCE
@@ -423,6 +587,8 @@ class Game:
         floating_numbers.update(dt)
         self.particles = [p for p in self.particles if p.alive]
         self.pulses = [p for p in self.pulses if p.alive]
+        self.evolution_glows = [g for g in self.evolution_glows if g.alive]
+        self.ring_bursts = [r for r in self.ring_bursts if r.alive]
 
         # 8. Эффекты
         shake.update(dt)
@@ -432,6 +598,26 @@ class Game:
             p.update(dt)
         for p in self.pulses:
             p.update(dt)
+        for g in self.evolution_glows:
+            g.update(dt, self.player.pos)
+        for r in self.ring_bursts:
+            r.update(dt)
+
+        # 8.5 REF-9: Periodic achievement check during gameplay
+        self._ach_check_timer += dt
+        if self._ach_check_timer >= 2.0:
+            self._ach_check_timer = 0.0
+            boss_killed = any(not e.alive and e.is_boss for e in self.enemies)
+            new_unlocks = self.meta.check_achievements(
+                self.elapsed, self.wave_mgr.wave,
+                self.player.kills, self.meta.gold,
+                boss_killed=boss_killed
+            )
+            for aid, reward in new_unlocks:
+                adef = ACHIEVEMENTS.get(aid, {})
+                ach_name = adef.get("name", aid)
+                ach_desc = adef.get("desc", "")
+                spawn_achievement_toast(ach_name, ach_desc, duration=3.0)
 
         # 9. Смерть игрока
         if not self.player.alive:
@@ -454,13 +640,16 @@ class Game:
             if int(self.elapsed) > self.meta.best_time:
                 self.meta.best_time = int(self.elapsed)
 
-            # Проверить достижения
+            # Проверить достижения (финальный шанс на разблокировку)
             boss_killed = any(not e.alive and e.is_boss for e in self.enemies)
-            self.meta.check_achievements(
+            final_unlocks = self.meta.check_achievements(
                 self.elapsed, self.wave_mgr.wave,
                 self.player.kills, self.meta.gold,
                 boss_killed=boss_killed
             )
+            for aid, reward in final_unlocks:
+                adef = ACHIEVEMENTS.get(aid, {})
+                spawn_achievement_toast(adef.get("name", aid), adef.get("desc", ""), 3.0)
 
             # Сохранить прогресс
             save_progress(self.meta)
@@ -483,17 +672,27 @@ class Game:
     def on_enemy_killed(self, enemy):
         if sound_mgr:
             sound_mgr.play("kill")
+        # C3: Boss drops rune on death
+        if enemy.is_boss and not getattr(enemy, '_rune_dropped', False):
+            enemy._rune_dropped = True
+            import random
+            rune_type = random.choice(RUNE_TYPES)
+            self.rune_pickups.append(RunePickup(enemy.pos.x, enemy.pos.y, rune_type))
         # Проверка эволюции оружия при убийстве босса (сундук)
         if enemy.is_boss:
             for w in self.player.weapons:
                 if w.can_evolve(self.player):
                     w.evolve()
-                    shake.trigger(10, 0.3)
+                    shake.trigger(0.4)
+                    # Evolution glow - пульсирующая аура
+                    self.evolution_glows.append(
+                        EvolutionGlow(self.player.pos.x, self.player.pos.y)
+                    )
                     if sound_mgr:
                         sound_mgr.play("levelup")
 
     def check_levelup(self):
-        if self.player.xp >= self.player.xp_to_next:
+        while self.player.xp >= self.player.xp_to_next:
             self.player.xp -= self.player.xp_to_next
             self.player.level += 1
             self.player.xp_to_next = calc_xp_for_level(self.player.level)
@@ -504,13 +703,15 @@ class Game:
             elif self.player.level == 40:
                 self.player.xp_to_next += 2400
 
-            self.levelup_screen.activate(self.player)
+            self.levelup_screen.activate(self.player, self.meta.banned_items)
             self.state = "levelup"
 
-            # Level up burst — кольцо частиц
-            for _ in range(20):
-                self.particles.append(Particle(self.player.pos.x, self.player.pos.y,
-                                               (255, 220, 100), speed=4.0, lifetime=0.6))
+            # Level up burst — кольцо частиц (A3: crit tier)
+            emit_hit_burst(self.particles, self.player.pos.x, self.player.pos.y,
+                           "crit", (255, 220, 100))
+            self.ring_bursts.append(
+                RingBurst(self.player.pos.x, self.player.pos.y,
+                          radius=80, color=(255, 220, 100), duration=0.4))
             self.pulses.append(Pulse(self.player.pos.x, self.player.pos.y,
                                      80, (255, 220, 100), duration=0.4))
             if sound_mgr:
@@ -551,6 +752,10 @@ class Game:
         for p in self.pulses:
             p.draw(screen, cam_x, cam_y)
 
+        # Evolution glow (поверх пульсов, под препятствиями)
+        for g in self.evolution_glows:
+            g.draw(screen, cam_x, cam_y)
+
         # Препятствия
         for obs in self.obstacles:
             obs.draw(screen, cam_x, cam_y)
@@ -558,6 +763,10 @@ class Game:
         # XP-гемы
         for g in self.gems:
             g.draw(screen, cam_x, cam_y)
+
+        # REF-8: Gold coins
+        for c in self.gold_coins:
+            c.draw(screen, cam_x, cam_y)
 
         # Реликвии
         for r in self.relics:
@@ -583,11 +792,22 @@ class Game:
         for p in self.particles:
             p.draw(screen, cam_x, cam_y)
 
+        # A3: Ring bursts (on top of particles)
+        for r in self.ring_bursts:
+            r.draw(screen, cam_x, cam_y)
+
         # Damage numbers (floating manager)
         floating_numbers.draw(screen, cam_x, cam_y, small_font)
 
         # HUD
-        draw_hud(screen, self.player, self.wave_mgr.wave, self.elapsed, font, small_font)
+        draw_hud(screen, self.player, self.wave_mgr.wave, self.elapsed, font, small_font, self.enemies)
+
+        # Enemy direction indicators
+        from hud import draw_enemy_indicators, draw_minimap
+        draw_enemy_indicators(screen, self.player, self.enemies, cam_x, cam_y)
+
+        # Minimap
+        draw_minimap(screen, self.player, self.enemies, cam_x, cam_y)
 
         # LevelUpScreen
         if self.state == "levelup":
@@ -602,6 +822,9 @@ class Game:
 
         # Low HP vignette
         vignette.draw(screen)
+
+        # A4: Combo edge flash overlay
+        combo_edge_flash(screen)
 
 
 def _render_error_screen(err_text: str):
@@ -629,10 +852,17 @@ def _render_error_screen(err_text: str):
 
 async def main():
     """Главная async-функция (для pygbag)."""
+    global screen
+
+    # Инициализируем логгер сессии
+    logger = init_logger()
+
     try:
         init_pygame()
         init_sounds()
     except Exception as e:
+        if logger:
+            logger.log_error(e, {"stage": "init"})
         # На WASM выводим ошибку в консоль pygbag
         print(f"INIT ERROR: {e}")
         traceback.print_exc()
@@ -647,34 +877,131 @@ async def main():
 
     try:
         game = Game()
+        # Создаём SceneManager и регистрируем сцены
+        scene_mgr = SceneManager()
+        # Fade transitions
+        from fade_manager import FadeManager
+        scene_mgr.fade = FadeManager()
+        scene_mgr.register("splash", SplashScene())
+        scene_mgr.register("title", TitleScene(game.menu, game.meta, game.lobby))
+        scene_mgr.register("game", GameScene(game))
+        scene_mgr.register("game_over", GameOverScene(game.menu, game.meta, game.lobby, game=game))
+        scene_mgr.register("lobby", LobbyScene(game.lobby, game.meta, game.menu))
+        scene_mgr.register("settings", SettingsScene())
+        scene_mgr.register("bestiary", BestiaryScene(game.meta, game.lobby))
+        scene_mgr.register("codex", CodexScene(game.meta, game.lobby))
+        scene_mgr.register("run_prep", RunPrepScene())
+        scene_mgr.switch("splash")
     except Exception:
-        _render_error_screen(traceback.format_exc())
+        tb = traceback.format_exc()
+        print(tb, file=sys.stderr)
+        _render_error_screen(tb)
         pygame.display.flip()
-        while True:
-            pygame.event.pump()
-            await asyncio.sleep(0.1)
+        try:
+            while True:
+                pygame.event.pump()
+                await asyncio.sleep(0.1)
+        except (KeyboardInterrupt, asyncio.CancelledError):
+            pass
         return
 
     running = True
     while running:
         dt = clock.tick(FPS) / 1000.0
         dt = min(dt, 0.05)
+        current_fps = 1.0 / max(dt, 0.001)
+
+        # Логгер: FPS tick
+        if logger:
+            scene_name = getattr(scene_mgr, 'current', None) or 'unknown'
+            logger.tick(current_fps, dt, scene_name)
 
         try:
-            running = game.handle_events()
-            game.update(dt)
-            game.render()
-        except Exception:
-            _render_error_screen(traceback.format_exc())
+            events = pygame.event.get()
+            scene_before = getattr(scene_mgr, 'current', 'unknown')
+
+            # Логгер: записываем каждый клик/нажатие
+            if logger:
+                for event in events:
+                    if event.type == pygame.MOUSEBUTTONDOWN:
+                        logger.log_input(
+                            "mouse_click", str(event.button),
+                            scene_before, pos=list(event.pos))
+                    elif event.type == pygame.KEYDOWN:
+                        logger.log_input(
+                            "key_press", pygame.key.name(event.key),
+                            scene_before)
+
+            result = scene_mgr.handle_events(events)
+            running = result  # scene_mgr returns False to quit
+
+            # Логгер: что произошло после обработки событий
+            scene_after = getattr(scene_mgr, 'current', 'unknown')
+            if logger and scene_before != scene_after:
+                logger.log_transition(scene_before, scene_after, "event_handler")
+            
+            # Обработка специальных переходов из GameScene
+            game_scene = scene_mgr.scenes.get("game")
+            if game_scene and game_scene.done:
+                stats = {
+                    "wave": game.wave_mgr.wave,
+                    "time": int(game.elapsed),
+                    "kills": game.player.kills if game.player else 0,
+                    "level": game.player.level if game.player else 1,
+                    "gold": game.player.gold if game.player else 0,
+                }
+                # Логгер: снимок состояния при смерти
+                if logger:
+                    logger.log_transition("game", "game_over", "death")
+                    logger.log_state_snapshot(
+                        player_hp=0,
+                        player_max_hp=game.player.max_hp if game.player else 0,
+                        player_level=stats["level"],
+                        kills=stats["kills"],
+                        wave=stats["wave"],
+                        elapsed_time=stats["time"],
+                        gold=stats["gold"],
+                    )
+                scene_mgr.switch("game_over", stats=stats)
+                game_scene.done = False
+            
+            # Обработка перехода из SplashScene
+            splash_scene = scene_mgr.scenes.get("splash")
+            if splash_scene and splash_scene.done:
+                if logger:
+                    logger.log_transition("splash", "title", "fade_complete")
+                scene_mgr.switch("title")
+                splash_scene.done = False
+            
+            scene_mgr.update(dt)
+            if screen:
+                scene_mgr.draw(screen)
+        except Exception as e:
+            # Логгер: записываем ошибку с контекстом
+            if logger:
+                logger.log_error(e, {
+                    "scene": scene_mgr.current if hasattr(scene_mgr, 'current') else 'unknown',
+                    "dt": dt,
+                    "fps": current_fps,
+                })
+            tb = traceback.format_exc()
+            print(tb, file=sys.stderr)
+            _render_error_screen(tb)
             pygame.display.flip()
-            while True:
-                pygame.event.pump()
-                await asyncio.sleep(0.1)
+            try:
+                while True:
+                    pygame.event.pump()
+                    await asyncio.sleep(0.1)
+            except (KeyboardInterrupt, asyncio.CancelledError):
+                pass
             return
 
         pygame.display.flip()
         await asyncio.sleep(0)
 
+    # Логгер: нормальное завершение
+    if logger:
+        close_logger("normal")
     pygame.quit()
 
 

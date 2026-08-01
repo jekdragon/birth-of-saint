@@ -10,6 +10,8 @@ import sys
 IS_WEB = sys.platform == "emscripten"
 
 SAVE_DIR = os.path.join(os.path.dirname(__file__), "saves")
+# Совместимость: старые тесты используют SAVE_FILE
+SAVE_FILE = os.path.join(SAVE_DIR, "progress.json")
 
 # Активный профиль (1-3)
 _active_profile = 1
@@ -52,7 +54,7 @@ def get_active_profile() -> int:
     return _active_profile
 
 
-def save_progress(meta, profile_id: int = None) -> bool:
+def save_progress(meta, profile_id=None) -> bool:
     """Сохраняет MetaProgress в указанный профиль."""
     global _data_cache
     pid = profile_id if profile_id is not None else _active_profile
@@ -97,7 +99,7 @@ def save_progress(meta, profile_id: int = None) -> bool:
             return False
 
 
-def load_progress(meta, profile_id: int = None) -> bool:
+def load_progress(meta, profile_id=None) -> bool:
     """Загружает MetaProgress из указанного профиля."""
     global _data_cache
     pid = profile_id if profile_id is not None else _active_profile

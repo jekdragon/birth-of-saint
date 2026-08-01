@@ -36,6 +36,7 @@ class LogType:
     ANOMALY = "ANOMALY"
     PERF_SAMPLE = "PERF_SAMPLE"
     ENTITY_LEAK = "ENTITY_LEAK"
+    DEATH = "DEATH"
     SESSION_START = "SESSION_START"
     SESSION_END = "SESSION_END"
 
@@ -49,6 +50,9 @@ class SessionLogger:
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(exist_ok=True)
 
+        # Log rotation: keep max 20 files
+        self._rotate_logs(max_files=20)
+
         ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.log_file = self.log_dir / f"session_{ts}.jsonl"
         self._lock = threading.Lock()
@@ -60,6 +64,8 @@ class SessionLogger:
         self._last_scene = "unknown"
         self._scene_enter_time = 0.0
         self._last_perf_sample = 0.0
+        self._buffer: list[str] = []
+        self._buffer_max = 50  # flush every 50 lines
 
         # Пороги
         self.fps_threshold = 30
@@ -78,18 +84,37 @@ class SessionLogger:
     def elapsed(self) -> float:
         return time.monotonic() - self._start_time
 
+    def _rotate_logs(self, max_files: int = 20):
+        """Remove oldest log files if count exceeds max_files."""
+        try:
+            files = sorted(self.log_dir.glob("session_*.jsonl"), key=lambda p: p.stat().st_mtime)
+            while len(files) > max_files:
+                files.pop(0).unlink(missing_ok=True)
+        except Exception:
+            pass
+
     def _write(self, entry: dict):
         if not self._active:
             return
         entry["_t"] = round(self.elapsed, 3)
         entry["_frame"] = self._frame_count
-        line = json.dumps(entry, ensure_ascii=False, default=str) + "\n"
+        line = json.dumps(entry, ensure_ascii=False, default=str)
         with self._lock:
-            try:
-                with open(self.log_file, "a", encoding="utf-8") as f:
-                    f.write(line)
-            except Exception:
-                pass
+            self._buffer.append(line)
+            if len(self._buffer) >= self._buffer_max:
+                self._flush_buffer()
+
+    def _flush_buffer(self):
+        """Write buffered entries to disk."""
+        if not self._buffer:
+            return
+        try:
+            with open(self.log_file, "a", encoding="utf-8") as f:
+                for line in self._buffer:
+                    f.write(line + "\n")
+            self._buffer.clear()
+        except Exception:
+            pass
 
     # ----------------------------------------------------------
     # ERROR
@@ -258,6 +283,26 @@ class SessionLogger:
         })
 
     # ----------------------------------------------------------
+    # DEATH — смерть игрока
+    # ----------------------------------------------------------
+    def log_death(self, wave: int = 0, elapsed: float = 0,
+                  cause: str = "", weapons: list = None,
+                  hp_at_death: float = 0, kills: int = 0,
+                  gold: int = 0, level: int = 0, **extra):
+        self._write({
+            "type": LogType.DEATH,
+            "wave": wave,
+            "elapsed": round(elapsed, 1),
+            "cause": cause,
+            "weapons": weapons or [],
+            "hp_at_death": round(hp_at_death, 1),
+            "kills": kills,
+            "gold": gold,
+            "level": level,
+            **extra,
+        })
+
+    # ----------------------------------------------------------
     # PERF_SAMPLE
     # ----------------------------------------------------------
     def maybe_perf_sample(self, fps: float, dt: float, scene: str = "",
@@ -368,6 +413,7 @@ class SessionLogger:
     # CLOSE
     # ----------------------------------------------------------
     def close(self, reason: str = "normal"):
+        self._flush_buffer()  # flush remaining buffered entries
         self._write({
             "type": LogType.SESSION_END,
             "reason": reason,

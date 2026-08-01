@@ -308,13 +308,119 @@ def detect_patterns(entries: list[dict]):
         patterns.append(("short_session",
             f"Session lasted only {duration:.1f}s — likely crash or quick exit"))
 
+    # --- NEW PATTERNS (from game telemetry research) ---
+
+    # Pattern 11: Death clustering (deaths on same wave repeatedly)
+    deaths = [e for e in entries if e.get("type") == "DEATH"]
+    if len(deaths) >= 2:
+        waves = [e.get("wave", 0) for e in deaths]
+        wave_counts = Counter(waves)
+        for wave, count in wave_counts.items():
+            if count >= 2:
+                patterns.append(("death_clustering",
+                    f"Died {count} times on wave {wave} — difficulty spike or unfair generation"))
+
+    # Pattern 12: Retry variance (high deaths + low input variance = frustration)
+    if len(deaths) >= 3:
+        death_times = [e.get("_t", 0) for e in deaths]
+        intervals = [death_times[i+1] - death_times[i] for i in range(len(death_times)-1)]
+        avg_interval = sum(intervals) / len(intervals) if intervals else 0
+        if avg_interval < 30 and len(deaths) >= 3:
+            patterns.append(("retry_variance",
+                f"{len(deaths)} deaths in {duration:.0f}s (avg {avg_interval:.0f}s between) — frustration spiral"))
+
+    # Pattern 13: Churn trajectory (last events before session end)
+    if duration > 30 and entries:
+        last_events = []
+        for e in reversed(entries):
+            if e.get("type") == "SESSION_END":
+                continue
+            last_events.append(e)
+            if len(last_events) >= 3:
+                break
+        last_types = [e.get("type") for e in last_events]
+        if "DEATH" in last_types and "TRANSITION" in last_types:
+            patterns.append(("churn_trajectory",
+                f"Exit sequence: {' → '.join(last_types)} — likely frustration exit"))
+
+    # Pattern 14: Economy imbalance (gold earned vs spent)
+    state_snaps = [e for e in entries if e.get("type") == "STATE_SNAP"]
+    if len(state_snaps) >= 2:
+        gold_vals = [e.get("gold", 0) for e in state_snaps]
+        gold_max = max(gold_vals)
+        gold_end = gold_vals[-1]
+        if gold_max > 500 and gold_end > gold_max * 0.8:
+            patterns.append(("economy_hoarding",
+                f"Gold peaked at {gold_max}, ended at {gold_end} — hoarding without spending"))
+
+    # Pattern 15: Input entropy (AFK / bot detection)
+    inputs = [e for e in entries if e.get("type") == "INPUT"]
+    if len(inputs) >= 10:
+        # Check for repeated identical inputs (bot-like)
+        keys = [e.get("key") for e in inputs]
+        key_counts = Counter(keys)
+        most_common_key, most_count = key_counts.most_common(1)[0]
+        if most_count > len(keys) * 0.6:
+            patterns.append(("input_entropy",
+                f"Key '{most_common_key}' pressed {most_count}/{len(keys)} times ({most_count/len(keys)*100:.0f}%) — bot-like or stuck"))
+
+    # Pattern 16: Upgrade saturation (all weapons at max)
+    levelups = [e for e in entries if e.get("type") == "LEVELUP"]
+    if levelups:
+        late_levelups = [lu for lu in levelups if lu.get("level", 0) >= 15]
+        if late_levelups:
+            rerolls = sum(lu.get("rerolls_used", 0) for lu in late_levelups)
+            if rerolls > len(late_levelups) * 2:
+                patterns.append(("upgrade_saturation",
+                    f"High reroll count at late levels ({rerolls} rerolls in {len(late_levelups)} level-ups) — upgrade saturation"))
+
+    # Pattern 17: XP curve anomalies
+    if len(state_snaps) >= 3:
+        levels = [e.get("level", 1) for e in state_snaps]
+        times = [e.get("time", e.get("_t", 0)) for e in state_snaps]
+        if len(levels) >= 2 and times[-1] > 0:
+            level_per_min = (levels[-1] - levels[0]) / (times[-1] / 60) if times[-1] > 60 else 0
+            if level_per_min > 5:
+                patterns.append(("xp_curve_fast",
+                    f"Leveling at {level_per_min:.1f} levels/min — suspiciously fast"))
+            elif level_per_min < 0.2 and times[-1] > 120:
+                patterns.append(("xp_curve_slow",
+                    f"Leveling at {level_per_min:.1f} levels/min — XP starvation"))
+
+    # Pattern 18: Damage spike (rapid HP loss in state snapshots)
+    if len(state_snaps) >= 3:
+        hp_vals = [e.get("hp", 100) for e in state_snaps]
+        for i in range(len(hp_vals) - 1):
+            drop = hp_vals[i] - hp_vals[i+1]
+            if drop > 50 and hp_vals[i] > 0:
+                patterns.append(("damage_spike",
+                    f"HP dropped {drop:.0f} in one snapshot interval — burst damage"))
+
+    # Pattern 19: Boss frequency
+    boss_anomalies = [e for e in anomalies if "boss" in e.get("description", "").lower()]
+    transitions = [e for e in entries if e.get("type") == "TRANSITION"]
+    if boss_anomalies and len(boss_anomalies) > 2:
+        patterns.append(("boss_frequency",
+            f"{len(boss_anomalies)} boss-related events — boss spawn rate may be too high"))
+
+    # Pattern 20: Entity accumulation trend
+    if len(perf) >= 3:
+        enemy_vals = [e.get("enemies", 0) for e in perf]
+        if len(enemy_vals) >= 3:
+            trend = enemy_vals[-1] - enemy_vals[0]
+            if trend > 100:
+                patterns.append(("entity_accumulation",
+                    f"Enemy count grew by {trend} over session — spawn/cleanup imbalance"))
+
     # Print patterns
     if not patterns:
         print(f"  {GREEN}✓ No concerning patterns detected{RESET}")
         return
 
-    for ptype, desc in patterns:
-        icon = "🔴" if "cascade" in ptype or "crash" in ptype else "🟡"
+    severity_order = {"🔴": 0, "🟡": 1}
+    sorted_patterns = sorted(patterns, key=lambda p: (0 if "cascade" in p[0] or "crash" in p[0] or "spiral" in p[0] else 1, p[0]))
+    for ptype, desc in sorted_patterns:
+        icon = "🔴" if "cascade" in ptype or "crash" in ptype or "spiral" in ptype else "🟡"
         print(f"  {icon} {BOLD}{ptype}{RESET}: {desc}")
 
 

@@ -2,7 +2,7 @@
 
 > Created: 2026-08-01
 > Source: E:/birth-of-saint/ref_vs_clone.py (3617 lines)
-> Status: 4/9 DONE
+> Status: 10/13 DONE (1-10 complete, 11-13 advanced)
 
 ---
 
@@ -14,24 +14,12 @@
 | 2 | Multi-level XP (while loop) | main.py | HIGH — big XP gems lost levels |
 | 3 | Spawn distance 40→200 | config.py | HIGH — enemies spawned in walls |
 | 4 | Half-cooldown retry | weapons.py | MEDIUM — weapon dead air |
-
-## TODO ⏳
-
-### Tier 1: Gameplay Feel (30 min)
-
-| # | Fix | File(s) | Description | Difficulty |
-|---|-----|---------|-------------|------------|
-| 5 | Slow/freeze status | enemies.py, weapons.py | Add `apply_slow(factor, duration)` and `apply_freeze(duration)` to Enemy. Wire to Bell weapon. Visual: tint blue when slowed. | Easy |
-| 6 | Enemy world clamp | enemies.py | `pos.x = clamp(pos.x, 0, MAP_WIDTH)` in update(). Prevents enemies walking off map. | Easy |
-| 7 | Weapon idle retry for ALL types | weapons.py | Whip, Lightning, Bell, Prayer also use half-cooldown when no targets. Currently only Fire+Incense fixed. | Easy |
-
-### Tier 2: Content from Reference (1-2 hours)
-
-| # | Fix | File(s) | Description | Difficulty |
-|---|-----|---------|-------------|------------|
-| 8 | Gold coin pickups | projectiles.py, main.py, config.py | 40% drop chance per kill. Physical coin entity with magnet attract. Boss = coin rain. Replace auto-credit `score*0.1`. | Medium |
-| 9 | Achievement toasts in-run | hud.py, main.py | Show animated toast when achievement unlocked DURING gameplay (not just on death). ToastManager already exists. | Medium |
-| 10 | Telegraphed lightning | projectiles.py | LightningBolt shows shrinking ring 18 frames before strike. Player can dodge. | Medium |
+| 5 | Slow/freeze status | enemies.py, weapons.py | MEDIUM — Bell=freeze, Lightning=slow, blue tint |
+| 6 | Enemy world clamp | enemies.py | MEDIUM — enemies can't walk off map |
+| 7 | Weapon idle retry ALL types | weapons.py | MEDIUM — all 9 weapons have half-cooldown retry |
+| 8 | Gold coin pickups | projectiles.py, main.py, config.py | MEDIUM — 40% drop, magnet, boss rain |
+| 9 | Achievement toasts in-run | hud.py, main.py | MEDIUM — periodic check 2s, toast queue |
+| 10 | Telegraphed lightning | projectiles.py, weapons.py | MEDIUM — shrinking ring warning 0.3s, on_strike callback for delayed damage |
 
 ### Tier 3: Advanced (2+ hours)
 

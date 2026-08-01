@@ -543,7 +543,7 @@ main.py           | 🟢 LOW      |    1   |     1      | tests
 - [x] Smoke test: Screenshots saved
 
 ### 4.5.3: pygbag Rebuild
-- [ ] Smoke test: `python -m pygbag --build --html --disable-sound-format-error .`
+- [x] Smoke test: `python -m pygbag --build --html --disable-sound-format-error .`
 
 ---
 

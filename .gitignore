@@ -19,3 +19,10 @@ no/
 opik-eval-report.json
 graphify-out/
 "{all_chars*
+
+# Reference images and prompts
+ref*.png
+*.png
+Промт*.txt
+back/
+no/

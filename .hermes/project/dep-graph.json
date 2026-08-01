@@ -1,6 +1,15 @@
 {
+  "animation.py": [
+    "ui_theme.py"
+  ],
   "arcana.py": [
     "weapons.py"
+  ],
+  "bestiary.py": [
+    "weapons.py",
+    "config.py",
+    "hud.py",
+    "enemies.py"
   ],
   "camera.py": [
     "config.py"
@@ -8,54 +17,83 @@
   "cathedral.py": [
     "config.py"
   ],
+  "char_select.py": [
+    "config.py",
+    "player.py",
+    "scene_manager.py"
+  ],
+  "confirm_dialog.py": [
+    "config.py",
+    "sound_manager.py"
+  ],
   "effects.py": [
     "config.py"
   ],
   "enemies.py": [
-    "sprites.py",
+    "config.py",
+    "sprites.py"
+  ],
+  "fade_manager.py": [
     "config.py"
   ],
+  "game_over_screen.py": [
+    "config.py",
+    "sound_manager.py",
+    "weapons.py"
+  ],
   "hud.py": [
-    "weapons.py",
-    "config.py"
+    "config.py",
+    "enemies.py",
+    "weapons.py"
   ],
   "lobby.py": [
     "arcana.py",
+    "sound_manager.py",
+    "save_system.py",
     "config.py",
-    "save_system.py"
+    "weapons.py",
+    "player.py"
   ],
   "main.py": [
-    "menu.py",
-    "relics.py",
-    "obstacles.py",
-    "enemies.py",
-    "lobby.py",
-    "player.py",
-    "hud.py",
-    "effects.py",
     "config.py",
-    "leaderboard.py",
-    "camera.py",
-    "xp_system.py",
-    "save_system.py",
     "weapons.py",
-    "music.py",
-    "sounds.py",
-    "cathedral.py",
-    "arcana.py",
+    "relics.py",
+    "projectiles.py",
     "wave_manager.py",
-    "projectiles.py"
+    "effects.py",
+    "lobby.py",
+    "cathedral.py",
+    "xp_system.py",
+    "camera.py",
+    "fade_manager.py",
+    "leaderboard.py",
+    "sounds.py",
+    "hud.py",
+    "music.py",
+    "enemies.py",
+    "menu.py",
+    "scenes.py",
+    "player.py",
+    "scene_manager.py",
+    "arcana.py",
+    "obstacles.py",
+    "save_system.py",
+    "sound_manager.py"
   ],
   "menu.py": [
-    "player.py",
-    "config.py"
+    "save_system.py",
+    "config.py",
+    "game_over_screen.py",
+    "hud.py",
+    "sound_manager.py",
+    "player.py"
   ],
   "obstacles.py": [
     "config.py"
   ],
   "player.py": [
-    "sprites.py",
-    "config.py"
+    "config.py",
+    "sprites.py"
   ],
   "projectiles.py": [
     "config.py"
@@ -63,34 +101,82 @@
   "relics.py": [
     "config.py"
   ],
+  "scenes.py": [
+    "weapons.py",
+    "arcana.py",
+    "xp_system.py",
+    "confirm_dialog.py",
+    "bestiary.py",
+    "menu.py",
+    "save_system.py",
+    "config.py",
+    "leaderboard.py",
+    "main.py",
+    "hud.py",
+    "game_over_screen.py",
+    "sound_manager.py",
+    "player.py",
+    "scene_manager.py",
+    "splash.py"
+  ],
+  "scene_manager.py": [
+    "scenes.py"
+  ],
   "sounds.py": [
     "config.py"
   ],
-  "wave_manager.py": [
-    "enemies.py",
+  "splash.py": [
     "config.py"
+  ],
+  "stage_select.py": [
+    "config.py",
+    "scene_manager.py"
+  ],
+  "ui_components.py": [
+    "ui_theme.py",
+    "sound_manager.py",
+    "animation.py"
+  ],
+  "wave_manager.py": [
+    "config.py",
+    "enemies.py"
   ],
   "weapons.py": [
-    "projectiles.py",
-    "config.py"
+    "config.py",
+    "projectiles.py"
   ],
   "xp_system.py": [
+    "config.py",
+    "weapons.py"
+  ],
+  "tests/test_bugfixes.py": [
+    "lobby.py",
+    "confirm_dialog.py",
+    "sound_manager.py",
+    "fade_manager.py",
+    "sounds.py",
+    "hud.py",
     "weapons.py",
-    "config.py"
+    "player.py"
   ],
   "tests/test_phase25.py": [
-    "camera.py",
-    "obstacles.py",
-    "xp_system.py",
-    "enemies.py",
-    "main.py",
+    "wave_manager.py",
     "effects.py",
     "lobby.py",
-    "player.py",
+    "xp_system.py",
+    "camera.py",
+    "menu.py",
+    "bestiary.py",
+    "obstacles.py",
+    "save_system.py",
+    "config.py",
+    "main.py",
     "hud.py",
-    "wave_manager.py",
+    "game_over_screen.py",
+    "scenes.py",
     "weapons.py",
     "projectiles.py",
-    "config.py"
+    "player.py",
+    "enemies.py"
   ]
 }

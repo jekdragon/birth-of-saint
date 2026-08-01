@@ -1,16 +1,30 @@
 {
+  "ui_theme.py": [
+    "animation.py",
+    "ui_components.py"
+  ],
   "weapons.py": [
     "arcana.py",
+    "bestiary.py",
+    "game_over_screen.py",
     "hud.py",
+    "lobby.py",
     "main.py",
+    "scenes.py",
     "xp_system.py",
+    "tests/test_bugfixes.py",
     "tests/test_phase25.py"
   ],
   "config.py": [
+    "bestiary.py",
     "camera.py",
     "cathedral.py",
+    "char_select.py",
+    "confirm_dialog.py",
     "effects.py",
     "enemies.py",
+    "fade_manager.py",
+    "game_over_screen.py",
     "hud.py",
     "lobby.py",
     "main.py",
@@ -19,11 +33,54 @@
     "player.py",
     "projectiles.py",
     "relics.py",
+    "scenes.py",
     "sounds.py",
+    "splash.py",
+    "stage_select.py",
     "wave_manager.py",
     "weapons.py",
     "xp_system.py",
     "tests/test_phase25.py"
+  ],
+  "hud.py": [
+    "bestiary.py",
+    "main.py",
+    "menu.py",
+    "scenes.py",
+    "tests/test_bugfixes.py",
+    "tests/test_phase25.py"
+  ],
+  "enemies.py": [
+    "bestiary.py",
+    "hud.py",
+    "main.py",
+    "wave_manager.py",
+    "tests/test_phase25.py"
+  ],
+  "player.py": [
+    "char_select.py",
+    "lobby.py",
+    "main.py",
+    "menu.py",
+    "scenes.py",
+    "tests/test_bugfixes.py",
+    "tests/test_phase25.py"
+  ],
+  "scene_manager.py": [
+    "char_select.py",
+    "main.py",
+    "scenes.py",
+    "stage_select.py"
+  ],
+  "sound_manager.py": [
+    "confirm_dialog.py",
+    "game_over_screen.py",
+    "lobby.py",
+    "main.py",
+    "menu.py",
+    "scenes.py",
+    "ui_components.py",
+    "tests/test_bugfixes.py"
   ],
   "sprites.py": [
     "enemies.py",
@@ -31,37 +88,25 @@
   ],
   "arcana.py": [
     "lobby.py",
-    "main.py"
+    "main.py",
+    "scenes.py"
   ],
   "save_system.py": [
     "lobby.py",
-    "main.py"
-  ],
-  "menu.py": [
-    "main.py"
+    "main.py",
+    "menu.py",
+    "scenes.py",
+    "tests/test_phase25.py"
   ],
   "relics.py": [
     "main.py"
   ],
-  "obstacles.py": [
+  "projectiles.py": [
     "main.py",
+    "weapons.py",
     "tests/test_phase25.py"
   ],
-  "enemies.py": [
-    "main.py",
-    "wave_manager.py",
-    "tests/test_phase25.py"
-  ],
-  "lobby.py": [
-    "main.py",
-    "tests/test_phase25.py"
-  ],
-  "player.py": [
-    "main.py",
-    "menu.py",
-    "tests/test_phase25.py"
-  ],
-  "hud.py": [
+  "wave_manager.py": [
     "main.py",
     "tests/test_phase25.py"
   ],
@@ -69,36 +114,73 @@
     "main.py",
     "tests/test_phase25.py"
   ],
-  "leaderboard.py": [
+  "lobby.py": [
+    "main.py",
+    "tests/test_bugfixes.py",
+    "tests/test_phase25.py"
+  ],
+  "cathedral.py": [
     "main.py"
+  ],
+  "xp_system.py": [
+    "main.py",
+    "scenes.py",
+    "tests/test_phase25.py"
   ],
   "camera.py": [
     "main.py",
     "tests/test_phase25.py"
   ],
-  "xp_system.py": [
+  "fade_manager.py": [
     "main.py",
-    "tests/test_phase25.py"
+    "tests/test_bugfixes.py"
+  ],
+  "leaderboard.py": [
+    "main.py",
+    "scenes.py"
+  ],
+  "sounds.py": [
+    "main.py",
+    "tests/test_bugfixes.py"
   ],
   "music.py": [
     "main.py"
   ],
-  "sounds.py": [
-    "main.py"
+  "menu.py": [
+    "main.py",
+    "scenes.py",
+    "tests/test_phase25.py"
   ],
-  "cathedral.py": [
-    "main.py"
+  "scenes.py": [
+    "main.py",
+    "scene_manager.py",
+    "tests/test_phase25.py"
   ],
-  "wave_manager.py": [
+  "obstacles.py": [
     "main.py",
     "tests/test_phase25.py"
   ],
-  "projectiles.py": [
-    "main.py",
-    "weapons.py",
+  "game_over_screen.py": [
+    "menu.py",
+    "scenes.py",
+    "tests/test_phase25.py"
+  ],
+  "confirm_dialog.py": [
+    "scenes.py",
+    "tests/test_bugfixes.py"
+  ],
+  "bestiary.py": [
+    "scenes.py",
     "tests/test_phase25.py"
   ],
   "main.py": [
+    "scenes.py",
     "tests/test_phase25.py"
+  ],
+  "splash.py": [
+    "scenes.py"
+  ],
+  "animation.py": [
+    "ui_components.py"
   ]
 }

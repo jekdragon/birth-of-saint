@@ -1,6 +1,6 @@
 """
 Рождение святого - Visual Effects
-Screen shake, flash, grid rendering.
+Screen shake (trauma-based directional), flash, grid rendering.
 """
 import pygame
 import random
@@ -9,25 +9,80 @@ from config import WIDTH, HEIGHT, MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, BIOMES, CENT
 
 
 class ScreenShake:
-    def __init__(self):
-        self.intensity = 0
-        self.timer = 0.0
+    """Trauma-based directional screen shake with camera kick.
+
+    Usage:
+        shake.add_trauma(0.3, direction)  # directional hit
+        shake.add_trauma(0.1)             # random (no direction)
+
+    trauma^2 falloff gives heavy feel: small hits barely register,
+    big hits punch hard then decay smoothly.
+
+    Camera kick: single-frame opposite push on strong hits (trauma >= 0.2),
+    then decays into shake tail.
+    """
+
+    def __init__(self, max_offset: int = 20, decay_rate: float = 3.0,
+                 kick_strength: float = 6.0, kick_duration: float = 0.08):
+        self.trauma = 0.0
+        self.direction = None  # pygame.Vector2 or None for random
+        self.max_offset = max_offset
+        self.decay_rate = decay_rate
+        self.kick_strength = kick_strength
+        self.kick_duration = kick_duration
+        self.kick_timer = 0.0
+        self.kick_dx = 0.0
+        self.kick_dy = 0.0
         self.offset_x = 0
         self.offset_y = 0
 
-    def trigger(self, intensity: int, duration: float = 0.2):
-        self.intensity = intensity
-        self.timer = duration
+    def trigger(self, trauma: float, direction=None):
+        """Add trauma. direction: pygame.Vector2 (normalized) or None for random."""
+        self.trauma = min(1.0, self.trauma + trauma)
+        if direction is not None:
+            self.direction = direction
+        # Camera kick on strong hits
+        if trauma >= 0.2:
+            kick_dir = (-direction.x, -direction.y) if direction else (
+                random.uniform(-1, 1), random.uniform(-1, 1))
+            mag = math.sqrt(kick_dir[0]**2 + kick_dir[1]**2)
+            if mag > 0:
+                self.kick_dx = kick_dir[0] / mag * self.kick_strength * trauma
+                self.kick_dy = kick_dir[1] / mag * self.kick_strength * trauma
+            self.kick_timer = self.kick_duration
 
     def update(self, dt: float):
-        if self.timer > 0:
-            self.timer -= dt
-            self.offset_x = random.randint(-self.intensity, self.intensity)
-            self.offset_y = random.randint(-self.intensity, self.intensity)
+        if self.trauma > 0:
+            shake_amount = self.trauma ** 2 * self.max_offset
+            if self.direction is not None:
+                self.offset_x = int(self.direction.x * shake_amount
+                                    + random.uniform(-1, 1) * shake_amount * 0.5)
+                self.offset_y = int(self.direction.y * shake_amount
+                                    + random.uniform(-1, 1) * shake_amount * 0.5)
+            else:
+                self.offset_x = int(random.uniform(-1, 1) * shake_amount)
+                self.offset_y = int(random.uniform(-1, 1) * shake_amount)
+            self.trauma = max(0.0, self.trauma - self.decay_rate * dt)
         else:
             self.offset_x = 0
             self.offset_y = 0
-            self.intensity = 0
+            self.trauma = 0.0
+            self.direction = None
+
+        # Camera kick (single-frame push that decays)
+        if self.kick_timer > 0:
+            t = self.kick_timer / self.kick_duration
+            self.offset_x += int(self.kick_dx * t)
+            self.offset_y += int(self.kick_dy * t)
+            self.kick_timer = max(0.0, self.kick_timer - dt)
+        else:
+            self.kick_dx = 0.0
+            self.kick_dy = 0.0
+
+    @property
+    def intensity(self) -> int:
+        """Compatibility: current shake magnitude."""
+        return int(self.trauma ** 2 * self.max_offset)
 
 
 class ScreenFlash:

@@ -6,3 +6,16 @@ dist/
 *.egg-info/
 .env
 .hermes/cache/
+logs/
+
+# Temp/test files
+_refactor_*.py
+_test_*.py
+_verify_*.py
+back/
+no/
+"*.txt"
+"*.png"
+opik-eval-report.json
+graphify-out/
+"{all_chars*

@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+"""
+Git post-commit hook for Birth of the Saint.
+Logs each commit (hash, message, files changed) to ~/.hermes/logs/auto-commits.log.
+Silent on success — only writes to log file.
+"""
+import subprocess
+import sys
+import os
+import json
+from datetime import datetime
+from pathlib import Path
+
+LOG_FILE = Path.home() / ".hermes" / "logs" / "auto-commits.log"
+
+
+def main():
+    try:
+        # Get commit info
+        log = subprocess.run(
+            ["git", "log", "-1", "--pretty=format:%H|%s|%an|%ai"],
+            capture_output=True, text=True, timeout=5
+        )
+        if log.returncode != 0:
+            return 0
+
+        parts = log.stdout.strip().split("|", 3)
+        if len(parts) < 4:
+            return 0
+
+        commit_hash, message, author, date = parts
+
+        # Count changed files
+        diff = subprocess.run(
+            ["git", "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"],
+            capture_output=True, text=True, timeout=5
+        )
+        files = [f.strip() for f in diff.stdout.strip().split("\n") if f.strip()]
+
+        entry = {
+            "timestamp": datetime.now().isoformat(),
+            "hash": commit_hash[:8],
+            "message": message,
+            "author": author,
+            "files_changed": len(files),
+            "files": files[:10],  # cap at 10 for readability
+        }
+
+        LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(LOG_FILE, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+    except Exception:
+        pass
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

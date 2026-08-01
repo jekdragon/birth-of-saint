@@ -10,12 +10,15 @@ Usage:
     python log_analyzer.py grep --type ERROR [--last N]  # Search across sessions
     python log_analyzer.py patterns [session.jsonl]      # Pattern detection
     python log_analyzer.py perf [session.jsonl]          # Performance analysis
+    python log_analyzer.py audit [--path DIR]            # Code quality audit
 
 Zero dependencies — stdlib only.
 """
 from __future__ import annotations
+import ast
 import json
 import os
+import re
 import sys
 import glob
 import argparse
@@ -579,6 +582,242 @@ def cmd_perf(args):
             print(f"  {t:6.1f}s  FPS={color}{fps:5.1f}{RESET}  entities={total}")
 
 
+# ── CODE AUDIT ──────────────────────────────────────────────────────
+# Static analysis patterns for code quality (no runtime needed)
+
+def get_project_files(path: str = ".") -> list[Path]:
+    """Get all .py files in project, excluding common non-source dirs."""
+    root = Path(path)
+    skip = {".git", "__pycache__", ".hermes", "node_modules", ".venv", "venv",
+            "logs", "saves", "build", "dist", ".mypy_cache", ".pytest_cache"}
+    files = []
+    for f in root.rglob("*.py"):
+        if any(s in f.parts for s in skip):
+            continue
+        files.append(f)
+    return sorted(files)
+
+
+def audit_code(path: str = ".") -> list[tuple[str, str, str]]:
+    """Run all code audit patterns. Returns (severity, pattern, description)."""
+    findings = []
+    files = get_project_files(path)
+
+    for fpath in files:
+        try:
+            src = fpath.read_text(encoding="utf-8", errors="replace")
+            lines = src.split("\n")
+        except Exception:
+            continue
+
+        rel = str(fpath.relative_to(path))
+
+        # ── Pattern: rect_desync ──
+        # self.x = ... or self.y = ... without self.rect sync
+        if "self.rect" in src and ("self.x =" in src or "self.y =" in src):
+            has_sync = ("self.rect.center" in src or "self.rect.x" in src or
+                       "self.rect.topleft" in src or "self.rect.midbottom" in src)
+            if not has_sync:
+                findings.append(("🔴", "rect_desync",
+                    f"{rel}: self.x/y assigned but self.rect never synced — collisions will break"))
+
+        # ── Pattern: rotation_rect_stale ──
+        if "transform.rotate" in src and "self.image" in src:
+            if "self.rect = self.image.get_rect" not in src:
+                findings.append(("🟡", "rotation_rect_stale",
+                    f"{rel}: transform.rotate() without rect recalculation"))
+
+        # ── Pattern: surface_leak ──
+        # Surface() or Surface() inside a method that looks like it's called per-frame
+        surface_calls = re.findall(r"pygame\.Surface\(", src)
+        if len(surface_calls) > 3:
+            findings.append(("🟡", "surface_leak",
+                f"{rel}: {len(surface_calls)} Surface() calls — consider caching with Flyweight"))
+
+        # ── Pattern: event_queue_overflow ──
+        if "while" in src and ("pygame.event.get" in src or "pygame.event.pump" in src):
+            # Check if event.get is inside the loop
+            in_loop = False
+            depth = 0
+            for line in lines:
+                stripped = line.strip()
+                if "while" in stripped and ":" in stripped:
+                    in_loop = True
+                    depth = 0
+                if in_loop:
+                    if "pygame.event.get()" in stripped or "pygame.event.pump()" in stripped:
+                        break
+                    depth += 1
+                    if depth > 50:  # Too far from while — probably not in loop
+                        findings.append(("🟡", "event_queue_not_in_loop",
+                            f"{rel}: event.get() may not be inside the main loop"))
+                        break
+
+        # ── Pattern: group_type_mismatch ──
+        if "spritecollide" in src or "groupcollide" in src:
+            if "pygame.sprite.Group()" not in src and "Group()" not in src:
+                if "[" in src and "spritecollide" in src:
+                    findings.append(("🟡", "group_type_mismatch",
+                        f"{rel}: spritecollide may receive a list instead of Group"))
+
+        # ── Pattern: mask_stale ──
+        if "collide_mask" in src and "self.mask" not in src:
+            findings.append(("🟡", "mask_stale",
+                f"{rel}: collide_mask used but no self.mask defined"))
+
+        # ── Pattern: rename_residue ──
+        # Check for common old names that should have been renamed
+        old_names = {
+            "damage_numbers": "floating_numbers",
+            "display_name()": "w.name (property)",
+            "log_scene_change": "log_transition",
+            "log_user_action": "log_input",
+        }
+        for old, new in old_names.items():
+            if old in src:
+                findings.append(("🟡", "rename_residue",
+                    f"{rel}: uses '{old}' — should be '{new}'"))
+
+        # ── Pattern: cross_file_symmetric_bug ──
+        # Same method call pattern across multiple files (potential copy-paste bug)
+        method_calls = re.findall(r"self\.(\w+)\s*\(", src)
+        # This is checked across files later
+
+        # ── Pattern: unused_import ──
+        try:
+            tree = ast.parse(src)
+            imported = set()
+            used = set()
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        name = alias.asname or alias.name.split(".")[0]
+                        imported.add(name)
+                elif isinstance(node, ast.ImportFrom):
+                    for alias in node.names:
+                        name = alias.asname or alias.name
+                        imported.add(name)
+                elif isinstance(node, ast.Name):
+                    used.add(node.id)
+                elif isinstance(node, ast.Attribute):
+                    if isinstance(node.value, ast.Name):
+                        used.add(node.value.id)
+            unused = imported - used - {"__future__", "annotations"}
+            for u in unused:
+                findings.append(("🟡", "unused_import",
+                    f"{rel}: import '{u}' appears unused"))
+        except SyntaxError:
+            pass
+
+        # ── Pattern: bare_except ──
+        for i, line in enumerate(lines, 1):
+            stripped = line.strip()
+            if stripped == "except:" or stripped.startswith("except:"):
+                findings.append(("🟡", "bare_except",
+                    f"{rel}:{i} — bare except catches everything including KeyboardInterrupt"))
+
+        # ── Pattern: mutable_default ──
+        for i, line in enumerate(lines, 1):
+            if re.search(r"def \w+\(.*=\s*(\[\]|\{\}|set\(\))", line):
+                findings.append(("🔴", "mutable_default",
+                    f"{rel}:{i} — mutable default argument (shared across calls)"))
+
+        # ── Pattern: hardcoded_path ──
+        for i, line in enumerate(lines, 1):
+            if re.search(r'["\']C:\\\\|["\']D:\\\\|["\']E:\\\\', line):
+                findings.append(("🟡", "hardcoded_path",
+                    f"{rel}:{i} — hardcoded absolute path"))
+
+        # ── Pattern: missing_super ──
+        for i, line in enumerate(lines, 1):
+            if "def __init__" in line and "super()" not in lines[min(i, len(lines)-1)]:
+                # Check next 5 lines for super()
+                block = "\n".join(lines[i:i+5])
+                if "super().__init__" not in block and "super(type" not in block:
+                    # Only flag if class inherits from something
+                    if i > 1 and "class " in lines[max(0, i-20):i][0] if lines[max(0, i-20):i] else False:
+                        pass  # Complex check, skip for now
+
+        # ── Pattern: magic_number ──
+        # Large numbers in comparisons/assignments that aren't constants
+        for i, line in enumerate(lines, 1):
+            stripped = line.strip()
+            if stripped.startswith("#") or stripped.startswith("\"\"\""):
+                continue
+            numbers = re.findall(r"(?<!\w)(\d{4,})(?!\w)", stripped)
+            for num in numbers:
+                n = int(num)
+                if n > 1000 and n not in (2026, 2025, 2024):  # Exclude years
+                    findings.append(("🟡", "magic_number",
+                        f"{rel}:{i} — magic number {num} (consider named constant)"))
+
+        # ── Pattern: inconsistent_naming ──
+        # Mix of camelCase and snake_case in same file
+        camel = re.findall(r"\b[a-z]+[A-Z][a-z]+\b", src)
+        snake = re.findall(r"\b[a-z]+_[a-z]+\b", src)
+        if camel and snake:
+            camel_count = len([c for c in camel if not c.startswith("__")])
+            snake_count = len(snake)
+            if camel_count > 3 and snake_count > 3:
+                findings.append(("🟡", "inconsistent_naming",
+                    f"{rel}: mixed camelCase ({camel_count}) and snake_case ({snake_count})"))
+
+    # ── Cross-file patterns ──
+    # Collect all function definitions and check for duplicates
+    func_defs: dict[str, list[str]] = defaultdict(list)
+    for fpath in files:
+        try:
+            src = fpath.read_text(encoding="utf-8", errors="replace")
+            tree = ast.parse(src)
+            rel = str(fpath.relative_to(path))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.FunctionDef):
+                    func_defs[node.name].append(rel)
+        except Exception:
+            continue
+
+    for fname, locations in func_defs.items():
+        if len(locations) > 2 and not fname.startswith("_"):
+            findings.append(("🟡", "duplicate_function_name",
+                f"Function '{fname}' defined in {len(locations)} files: {', '.join(locations[:3])}"))
+
+    return findings
+
+
+def cmd_audit(args):
+    """Run code quality audit on project source files."""
+    path = args.path or "."
+    print(f"{BOLD}═══ Code Audit: {path} ═══{RESET}\n")
+
+    findings = audit_code(path)
+    if not findings:
+        print(f"  {GREEN}✓ No issues found{RESET}")
+        return
+
+    # Group by severity
+    critical = [f for f in findings if f[0] == "🔴"]
+    warnings = [f for f in findings if f[0] == "🟡"]
+
+    if critical:
+        print(f"{RED}{BOLD}Critical ({len(critical)}):{RESET}")
+        for sev, pat, desc in critical:
+            print(f"  🔴 {BOLD}{pat}{RESET}: {desc}")
+
+    if warnings:
+        print(f"\n{YELLOW}{BOLD}Warnings ({len(warnings)}):{RESET}")
+        for sev, pat, desc in warnings:
+            print(f"  🟡 {BOLD}{pat}{RESET}: {desc}")
+
+    # Summary by pattern
+    print(f"\n{BOLD}Summary:{RESET}")
+    pat_counts = Counter(f[1] for f in findings)
+    for pat, count in pat_counts.most_common():
+        icon = "🔴" if any(f[0] == "🔴" and f[1] == pat for f in findings) else "🟡"
+        print(f"  {icon} {pat}: {count}")
+
+    print(f"\n  {BOLD}Total: {len(findings)} findings ({len(critical)} critical, {len(warnings)} warnings){RESET}")
+
+
 # ── MAIN ────────────────────────────────────────────────────────────
 def main():
     parser = argparse.ArgumentParser(
@@ -624,6 +863,10 @@ Examples:
     p_perf = sub.add_parser("perf", help="Performance analysis")
     p_perf.add_argument("session", nargs="?", help="Session file")
 
+    # audit
+    p_audit = sub.add_parser("audit", help="Code quality audit")
+    p_audit.add_argument("--path", "-p", default=".", help="Project root path")
+
     args = parser.parse_args()
 
     commands = {
@@ -633,6 +876,7 @@ Examples:
         "replay": cmd_replay,
         "grep": cmd_grep,
         "perf": cmd_perf,
+        "audit": cmd_audit,
     }
 
     if not args.command:

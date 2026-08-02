@@ -529,7 +529,9 @@ class PauseOverlay(OverlayScene):
 
 
 class GameOverScene(Scene):
-    """Сцена Game Over с анимациями и полной статистикой."""
+    """Сцена Game Over с анимациями и полной статистикой.
+    R - заново, S - настройки, ESC - в лобби.
+    """
     
     def __init__(self, menu, meta, lobby, game=None):
         super().__init__()
@@ -560,6 +562,8 @@ class GameOverScene(Scene):
                     return "game"
                 if event.key == pygame.K_ESCAPE:
                     return "lobby"
+                if event.key == pygame.K_s:
+                    return ("settings", {"return_to": "game_over"})
             result = self.menu.handle_event(event)
             if result == "restart":
                 return "game"
@@ -607,6 +611,8 @@ class LobbyScene(Scene):
             result = self.lobby.handle_event(event)
             if result == "play":
                 return "run_prep"
+            elif result == "back":
+                return "title"
             elif result == "bestiary":
                 return "bestiary"
             elif result == "codex":
@@ -873,6 +879,8 @@ class RunPrepScene(Scene):
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE):
                     sound_manager.play("ui_confirm")
                     return "game"
+                if event.key == pygame.K_s:
+                    return ("settings", {"return_to": "run_prep"})
         return None
 
     def draw(self, screen):
@@ -982,5 +990,5 @@ class RunPrepScene(Scene):
             screen.blit(none_text, (80, y))
 
         # Подсказка
-        hint = small_font.render("Enter - начать забег  |  ESC - назад", True, (100, 100, 100))
+        hint = small_font.render("Enter - играть  |  S - настройки  |  ESC - назад", True, (100, 100, 100))
         screen.blit(hint, (cx - hint.get_width() // 2, HEIGHT - 30))

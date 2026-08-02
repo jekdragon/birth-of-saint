@@ -2850,19 +2850,19 @@ try:
     ls.enter()
     lobby11.activate(meta11, menu=menu11)
 
-    # The lobby returns "play" on ESC, then LobbyScene wraps it as "run_prep"
+    # The lobby returns "back" on ESC, then LobbyScene wraps it as "title"
     esc_event = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_ESCAPE)
-    # LobbyScreen handles ESC -> "play"
+    # LobbyScreen handles ESC -> "back"
     lobby_result = lobby11.handle_event(esc_event)
-    check("C5-11a lobby ESC returns play", lobby_result == "play")
+    check("C5-11a lobby ESC returns back", lobby_result == "back")
 
-    # LobbyScene should wrap this as "run_prep"
+    # LobbyScene should wrap this as "title"
     # Simulate by calling handle_events
     ls2 = LobbyScene(lobby11, meta11, menu11)
     ls2.enter()
     lobby11.activate(meta11, menu=menu11)
     result = ls2.handle_events([esc_event])
-    check("C5-11b LobbyScene returns run_prep", result == "run_prep", f"result={result}")
+    check("C5-11b LobbyScene returns title", result == "title", f"result={result}")
 except Exception as e:
     check("C5-11 lobby flow", False, str(e))
 

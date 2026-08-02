@@ -237,7 +237,7 @@ class LobbyScreen:
                 self.ban_mode = False
                 return None
 
-            # ESC = играть (или выход из подменю)
+            # ESC = назад в меню (или выход из подменю)
             if event.key == pygame.K_ESCAPE:
                 if self.ban_mode:
                     self.ban_mode = False
@@ -245,8 +245,8 @@ class LobbyScreen:
                     sound_manager.play("ui_back")
                     return None
                 self.active = False
-                sound_manager.play("ui_select")
-                return "play"
+                sound_manager.play("ui_back")
+                return "back"
 
             # Бестиарий (B) — только если НЕ в магазине
             if event.key == pygame.K_b and self.current_tab != "Магазин":
@@ -296,6 +296,10 @@ class LobbyScreen:
             cid = chars[self.selected]
             if cid in self.meta.unlocked_chars:
                 if self.menu:
+                    # Если персонаж уже выбран — начинаем забег
+                    if self.menu.selected_char == cid:
+                        sound_manager.play("ui_confirm")
+                        return "play"
                     self.menu.selected_char = cid
                     sound_manager.play("ui_select")
             else:
@@ -441,7 +445,7 @@ class LobbyScreen:
             tab_x += t.get_width() + 24
 
         # Подсказка навигации
-        nav = small_font.render("TAB - таб  |  B - бестиарий  |  C - кодекс  |  O - настройки  |  ESC - играть", True, (80, 80, 80))
+        nav = small_font.render("Enter - играть  |  TAB - табы  |  B - бестиарий  |  C - кодекс  |  O - настройки  |  ESC - меню", True, (80, 80, 80))
         surface.blit(nav, (cx - nav.get_width() // 2, HEIGHT - 25))
 
         # === Контент таба ===

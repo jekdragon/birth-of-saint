@@ -35,6 +35,8 @@ from relics import RelicManager, RELIC_DEFS
 from leaderboard import add_score, get_entries
 from scene_manager import SceneManager
 from scenes import SplashScene, TitleScene, GameScene, GameOverScene, LobbyScene, SettingsScene, BestiaryScene, CodexScene, RunPrepScene
+from char_select import CharSelectScene
+from stage_select import StageSelectScene
 
 # Глобальные объекты
 screen = None
@@ -891,6 +893,8 @@ async def main():
         scene_mgr.register("bestiary", BestiaryScene(game.meta, game.lobby))
         scene_mgr.register("codex", CodexScene(game.meta, game.lobby))
         scene_mgr.register("run_prep", RunPrepScene())
+        scene_mgr.register("char_select", CharSelectScene())
+        scene_mgr.register("stage_select", StageSelectScene())
         scene_mgr.switch("splash")
     except Exception:
         tb = traceback.format_exc()
@@ -1002,6 +1006,7 @@ async def main():
     # Логгер: нормальное завершение
     if logger:
         close_logger("normal")
+    scene_mgr.dump_log("logs/scene_flow.json")
     pygame.quit()
 
 

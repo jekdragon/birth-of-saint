@@ -62,6 +62,21 @@ class SceneManager:
         self._transition_queue: list[str] = []
         self._transition_kwargs: dict = {}
         self.fade = None  # FadeManager (опционально)
+        self._transition_log: list[dict] = []  # scene flow log
+    
+    def _log_transition(self, from_s, to_s, trigger=""):
+        """Log a scene transition."""
+        import time
+        entry = {"from": from_s, "to": to_s, "trigger": trigger, "t": time.time()}
+        self._transition_log.append(entry)
+        print(f"[SCENE] {from_s} → {to_s}  ({trigger})")
+    
+    def dump_log(self, path="logs/scene_flow.json"):
+        """Dump transition log to JSON."""
+        import json, os
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            json.dump(self._transition_log, f, indent=2)
     
     def register(self, name: str, scene: Scene):
         """Регистрирует сцену."""
@@ -91,6 +106,7 @@ class SceneManager:
             return
         
         name = self._transition_queue.pop(0)
+        old = self.current
         
         # Special: "__pause__" = открыть паузу после settings
         if name == "__pause__":
@@ -99,6 +115,7 @@ class SceneManager:
             current_scene = self.scenes.get(self.current)
             game = getattr(current_scene, 'game', None) if current_scene else None
             self.push_overlay(pause, game=game)
+            self._log_transition(old or "none", "PauseOverlay", "__pause__")
             self._transition_kwargs = {}
             return
         
@@ -116,6 +133,7 @@ class SceneManager:
         # Входим в новую
         self.current = name
         self.scenes[self.current].enter(**self._transition_kwargs)
+        self._log_transition(old or "none", name, "switch")
         self._transition_kwargs = {}
     
     def handle_events(self, events: list) -> bool:
@@ -130,9 +148,12 @@ class SceneManager:
         if self.overlay:
             result = self.overlay.handle_events(events)
             if result == "__overlay__":
+                self._log_transition(f"overlay({self.overlay.__class__.__name__})", self.current, "pop_overlay(ESC)")
                 self.pop_overlay()
             elif result:
+                overlay_name = self.overlay.__class__.__name__
                 self.pop_overlay()
+                self._log_transition(f"overlay({overlay_name})", result, "overlay→switch")
                 self.switch(result)
             return True
         
@@ -149,8 +170,10 @@ class SceneManager:
                     if result:
                         break
             if result == "__quit__":
+                self._log_transition(self.current, "EXIT", "__quit__")
                 return False
             elif result == "__pause__":
+                self._log_transition(self.current, "PauseOverlay", "__pause__")
                 # Создаём и показываем оверлей паузы
                 from scenes import PauseOverlay
                 pause = PauseOverlay()
@@ -161,8 +184,10 @@ class SceneManager:
             elif isinstance(result, tuple) and len(result) == 2:
                 # (scene_name, kwargs) — передаём параметры в switch
                 name, kwargs = result
+                self._log_transition(self.current, name, f"tuple({kwargs})")
                 self.switch(name, **kwargs)
             elif result:
+                self._log_transition(self.current, result, "handle_events")
                 self.switch(result)
         
         return True
